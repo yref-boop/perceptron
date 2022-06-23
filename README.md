@@ -7,3 +7,5 @@ all different implementations are conceptually identical, the oly changes are th
     - the first value of each pair, x represents the weight of the connection
     - the second the current value being transmitted
 - since there is just a single neuron implemented, the learning algorithm is the delta rule
+
+in its current state the code should be able to learn to find a any linearly separable pattern for a problem that can be solved by it, yet it hasn't been tested yet
