@@ -1,3 +1,6 @@
+module Main (main) where
+import Reader (read_data)
+
 -- auxiliar absolute value
 absolute_float x =
     if (x < 0.0) then -1.0 * x else x
@@ -37,4 +40,6 @@ train inputs expected_result error_threshold =
 
 -- main
 main :: IO ()
-main = return ()
+main = do
+    let inputs = Reader.read_data
+    return()

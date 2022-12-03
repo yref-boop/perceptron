@@ -1,3 +1,5 @@
+module Reader (read_data) where
+
 -- remove last line \n
 clean_last :: String -> String
 clean_last (string) = case string of
@@ -20,10 +22,9 @@ format :: [[String]] -> [[Float]]
 format string_list = map (map (read :: String -> Float)) string_list
 
 -- main
-main :: IO ([[Float]])
-main = do
+read_data :: IO ([[Float]])
+read_data = do
     contents <- readFile "data.txt"
     let tokens = map (tokenize ' ') (tokenize '\n' (clean_last(contents)))
     let formatted_contents = format tokens
-    print formatted_contents
     return formatted_contents
