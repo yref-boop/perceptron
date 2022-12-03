@@ -1,41 +1,29 @@
+-- remove last line \n
+clean_last :: String -> String
+clean_last (string) = case string of
+    ("")   -> error "empty file"
+    (a:"") -> ""
+    (a:b)  -> [a] ++ clean_last b
+
+--clean_last ""       = error "empty file"
+--clean_last (a:"")   = ""
+--clean_last (a:b)    = a ++ clean_last b
+
 -- tokenize string 
---tokenize :: [String] -> String -> [String] 
---tokenize result string = case string of
-    --'\n':rest  -> tokenize ((result ++ []) rest)
-    --' ':rest   -> tokenize result ++ [] rest
-    --char:rest  -> tokenize last result ++ char rest
-    --char:[]    -> last result ++ char 
-
---tokenize :: [Char] -> [[Char]]
---tokenize [] = []
---tokenize (' ':rest) = tokenize rest
---tokenize ('\n':rest) = tokenize rest
---tokenize (char:rest) = [char]:tokenize rest 
-
 tokenize :: Char -> String -> [String]
 tokenize c xs = case break (==c) xs of 
     (ls, "") -> [ls]
     (ls, x:rs) -> ls : tokenize c rs
 
---tokenize string =
---    let aux_tokenize tokens (aux_string)
---        ('\n':rest) = aux_tokenize((tokens ++ []) rest) 
---    in aux_tokenize [] string
-
--- format token list
---format :: [[Char]] -> [Float]
---format (a:[]) = [read a]
---format (a:b) = [read a] : format b
-
--- 
-format :: [String] -> [Float]
-format string = map (read :: String -> Float) string
+-- token list to float list
+format :: [[String]] -> [[Float]]
+format string_list = map (map (read :: String -> Float)) string_list
 
 -- main
-main :: IO ([Float])
+main :: IO ([[Float]])
 main = do
     contents <- readFile "data.txt"
-    let tokens = tokenize ' ' contents
+    let tokens = map (tokenize ' ') (tokenize '\n' (clean_last(contents)))
     let formatted_contents = format tokens
     print formatted_contents
     return formatted_contents
