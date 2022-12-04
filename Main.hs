@@ -9,6 +9,7 @@ absolute_float x =
 relu x = max(0,x)
 
 -- sigmoid
+sigmoid :: Float -> Float
 sigmoid x = 1.0/(1+exp(-x))
 
 -- sigmoid derivative
@@ -19,16 +20,19 @@ sigmoid_derivative x =
 untuple (weight, value) = weight * value
 
 -- neuron function
+neuron :: (Float -> Float) -> [(Float,Float)] -> Float -> Float
 neuron activation_function inputs bias =
     activation_function ( bias + (foldl (+) 0.0 (map untuple inputs)))
 
 -- delta rule
+delta_rule :: Float -> Float -> Float -> (Float, Float) -> (Float, Float)
 delta_rule n error x (weight, value) =
     (weight + n * error * x, value)
 
 -- weight modification
+learn :: [(Float,Float)] -> Float -> [(Float,Float)]
 learn inputs error =
-    map (delta_rule 0.1 error 0.1) inputs
+    fmap (delta_rule 0.1 error 0.1) inputs
 
 -- training function
 --train_iteration inputs expected_result error_threshold =
@@ -43,11 +47,15 @@ dataAt y (x:xs)  | y <= 0 = x
                  | otherwise = dataAt (y-1) xs
 
 -- check how bias worked
+train :: [[(Float,Float)]] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> Int -> [[Float]]
 
-train inputs real_out error error_threshold epoch max_epoch act_function element =
+train inputs expected_results error error_threshold epoch max_epoch act_function element =
+    
     if (epoch > max_epoch || error < error_threshold)
-        then return map (fst) (dataAt inputs element)
-    else return [] 
+        then return (fmap (fst) (dataAt element inputs))
+
+    else train (learn (dataAt element inputs) ((dataAt element expected_results) - (neuron sigmoid (dataAt element inputs) 1.0))) expected_results ((dataAt element expected_results) - (neuron sigmoid (dataAt element inputs) 1.0)) error_threshold (epoch + 1) max_epoch act_function 0
+
 
 -- add (weight, value)
 format_input :: Float -> (Float, Float)
@@ -57,13 +65,13 @@ format_input value = (0, value)
 main :: IO ()
 main = do
     
-    let all_data = Reader.read_data
+    all_data <- Reader.read_data
  
-    let instances = fmap length all_data
-    let dimension = fmap length (fmap tail (fmap head all_data))
-    let inputs = fmap (fmap tail) all_data
-    let formatted_inputs = fmap ( fmap (fmap format_input)) inputs
-    let real_out = fmap (fmap head) all_data
+    let instances = length all_data
+    let dimension = length (tail (head all_data))
+    let inputs = fmap (tail) all_data
+    let formatted_inputs = fmap (fmap (format_input)) inputs
+    let real_out = fmap (head) all_data
 
     let error_threshold = 1.0
     let max_epoch = 1000
