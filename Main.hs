@@ -1,5 +1,6 @@
 module Main (main) where
 import Reader (read_data)
+import System.Random 
 
 -- auxiliar absolute value
 absolute_float x =
@@ -45,26 +46,27 @@ learn inputs element expected_results activation_function =
 
 
 -- check how bias worked
-train :: [[(Float,Float)]] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> Int -> [[Float]]
+train :: [[(Float,Float)]] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> [[Float]]
 train inputs expected_results error error_threshold epoch max_epoch act_function element =
     
     if (epoch > max_epoch || error < error_threshold)
-        then return (fmap (fst) (data_at element inputs))
+        then return (fmap (fst) (data_at (fst element) inputs))
     else 
         train 
-            (learn inputs element expected_results act_function) 
+            (learn inputs (fst element) expected_results act_function) 
             expected_results 
-            ((data_at element expected_results)-(neuron sigmoid (data_at element inputs) 1.0))
+            ((data_at (fst element) expected_results)-(neuron sigmoid (data_at (fst element) inputs) 1.0))
             error_threshold 
             (epoch + 1) 
             max_epoch 
             act_function 
-            0
+            (randomR (0, length inputs) (snd element))
 
 
 -- add (weight, value)
 format_input :: Float -> (Float, Float)
-format_input value = (0, value)
+format_input value = (fst (randomR (0,1) (mkStdGen (floor (value * 17)))), value)
+
 
 -- main
 main :: IO ([[Float]])
@@ -82,6 +84,8 @@ main = do
     let max_epoch = 1000
     let act_function = sigmoid
 
-    let final_weights = train formatted_inputs real_out 1000 error_threshold 0 max_epoch act_function 0
+    let (value, rng) = randomR (0,instances) (mkStdGen 17)
+
+    let final_weights = train formatted_inputs real_out 1000 error_threshold 0 max_epoch act_function (value, rng)
 
     return (final_weights) 
