@@ -2,50 +2,65 @@ module Main (main) where
 import Reader (read_data)
 import System.Random 
 
+
 -- auxiliar absolute value
-absolute_float x =
-    if (x < 0.0) then -1.0 * x else x
+absolute :: Float -> Float
+absolute x =
+    if (x < 0) then -1.0 * x
+        else x
+
 
 -- relu
-relu x = max(0,x)
+relu :: Float ->  Float
+relu x =
+    if (x < 0) then 0
+        else x
+
 
 -- sigmoid
 sigmoid :: Float -> Float
 sigmoid x = 1.0/(1+exp(-x))
 
+
 -- sigmoid derivative
+sigmoid_derivative :: Float -> Float
 sigmoid_derivative x =
     sigmoid x * (1.0 - sigmoid x )
 
+
 -- auxiliar for inputs
+untuple :: (Float, Float) -> Float
 untuple (weight, value) = weight * value
+
 
 -- neuron function
 neuron :: (Float -> Float) -> [(Float,Float)] -> Float -> Float
 neuron activation_function inputs bias =
     activation_function ( bias + (foldl (+) 0.0 (map untuple inputs)))
 
+
 -- delta rule
 delta_rule :: Float -> Float -> Float -> (Float, Float) -> (Float, Float)
 delta_rule n error x (weight, value) = 
     (weight + n * error * x, value)
 
+
 -- get element at specific position
 data_at :: Int -> [a] -> a
 data_at _ [] = error "empty list"
-data_at y (x:xs)  | y <= 0 = x
+data_at y (x:xs) | y <= 0 = x
                  | otherwise = data_at (y-1) xs
 
 
 -- weight modification
 learn :: [[(Float, Float)]] -> Int -> [Float] -> (Float -> Float) -> [[(Float, Float)]]
-learn inputs element expected_results activation_function = 
-    let error = ((data_at element expected_results) - (neuron activation_function (data_at element inputs) 1.0)) in
-    
+learn inputs element expected_results activation_function =
+
+    let error = ((data_at element expected_results) - (neuron activation_function (data_at element inputs) 1.0)) in    
     fmap (fmap (delta_rule 0.1 error 0.1)) inputs
 
 
--- check how bias worked
+-- core function
 train :: [[(Float,Float)]] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> [[Float]]
 train inputs expected_results error error_threshold epoch max_epoch act_function element =
     
@@ -61,7 +76,7 @@ train inputs expected_results error error_threshold epoch max_epoch act_function
             max_epoch 
             act_function 
             (randomR (0, length inputs) (snd element))
-
+ 
 
 -- add (weight, value)
 format_input :: Float -> (Float, Float)
@@ -87,5 +102,7 @@ main = do
     let (value, rng) = randomR (0,instances) (mkStdGen 17)
 
     let final_weights = train formatted_inputs real_out 1000 error_threshold 0 max_epoch act_function (value, rng)
+
+    print (final_weights)
 
     return (final_weights) 
