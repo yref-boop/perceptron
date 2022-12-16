@@ -1,5 +1,5 @@
 module Main (main) where
-import Reader (read_data)
+import Normalize (normalize_data)
 import System.Random 
 
 
@@ -87,7 +87,7 @@ format_input value = (fst (randomR (0,1) (mkStdGen (floor (value * 17)))), value
 main :: IO ([[Float]])
 main = do
     
-    all_data <- Reader.read_data
+    all_data <- Normalize.normalize_data
  
     let instances = length all_data
     let dimension = length (tail (head all_data))

@@ -17,11 +17,10 @@ tokenize c xs = case break (==c) xs of
 format :: [[String]] -> [[Float]]
 format string_list = map (map (read :: String -> Float)) string_list
 
-
 -- main
 read_data :: IO([[Float]])
 read_data = do
     contents <- readFile "data.txt"
-    let tokens = map (tokenize ' ') (tokenize '\n' (clean_last(contents)))
+    let tokens = map (tokenize '\t') (tokenize '\n' (clean_last(contents)))
     let formatted_contents = format tokens
     return formatted_contents
