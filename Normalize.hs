@@ -1,8 +1,12 @@
 module Normalize (normalize_data) where
 import Reader (read_data)
 
--- transpose list
+
+-- transpose list 
+-- [[a,b,c],[e,f,g],[h,i,j]] --> [[a,e,h],[b,f,i],[e,g,j]]
 transpose :: [[Float]] -> [[Float]]
+transpose ([]:_) = []
+transpose x = (map head x) : transpose (map tail x)
 
 
 -- normalize one single list
@@ -11,7 +15,6 @@ normalize_aux input_list =
     let max_value = foldl max 0 input_list in
     fmap (/ max_value) input_list
 
--- [[a,b,c],[e,f,g],[h,i,j]] --> [[a,e,h],[b,f,i],[]]
 
 -- main
 normalize_data :: IO([[Float]])
