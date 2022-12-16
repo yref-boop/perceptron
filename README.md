@@ -38,6 +38,7 @@ this normalization is not perfect, it does not take into account boolean/categor
 
 <details>
 <summary>current example</summary>
+
 the current [data](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) has the following input variables:
 - fixed acidity
 - volatile acidity
