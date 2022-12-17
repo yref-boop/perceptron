@@ -3,21 +3,21 @@ import Normalize (normalize_data)
 import System.Random 
 
 
--- auxiliar absolute value
+-- absolute value function
 absolute :: Float -> Float
 absolute x =
     if (x < 0) then -1.0 * x
         else x
 
 
--- relu
+-- relu function
 relu :: Float ->  Float
 relu x =
     if (x < 0) then 0
         else x
 
 
--- sigmoid
+-- sigmoid function
 sigmoid :: Float -> Float
 sigmoid x = 1.0/(1+exp(-x))
 

@@ -1,5 +1,5 @@
 module Normalize (normalize_data) where
-import Reader (read_data)
+import Read (read_data)
 
 
 -- transpose list 
@@ -21,7 +21,7 @@ normalize_data :: IO([[Float]])
 normalize_data = do
 
     -- read data
-    formatted_contents <- Reader.read_data
+    formatted_contents <- Read.read_data
 
     -- auxiliar data
     let instances = length formatted_contents

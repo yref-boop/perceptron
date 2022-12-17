@@ -1,4 +1,4 @@
-module Reader (read_data) where
+module Read (read_data) where
 
 -- remove last line \n
 clean_last :: String -> String
