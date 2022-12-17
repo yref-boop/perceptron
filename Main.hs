@@ -19,7 +19,7 @@ relu x =
 
 -- sigmoid function
 sigmoid :: Float -> Float
-sigmoid x = 1.0/(1+exp(-x))
+sigmoid x = 1.0 / ( 1 + exp (-x) )
 
 
 -- sigmoid derivative
@@ -47,7 +47,7 @@ delta_rule n error x (weight, value) =
 
 -- get element at specific position
 data_at :: Int -> [a] -> a
-data_at _ [] = error "empty list"
+data_at _ [] = error "empty data list"
 data_at y (x:xs) | y <= 0 = x
                  | otherwise = data_at (y-1) xs
 
@@ -56,8 +56,8 @@ data_at y (x:xs) | y <= 0 = x
 learn :: [[(Float, Float)]] -> Int -> [Float] -> (Float -> Float) -> [[(Float, Float)]]
 learn inputs element expected_results activation_function =
 
-    let error = ((data_at element expected_results) - (neuron activation_function (data_at element inputs) 1.0)) in    
-    fmap (fmap (delta_rule 0.1 error 0.1)) inputs
+    let error = ((data_at element expected_results) - (neuron activation_function (data_at element inputs) 1.0)) 
+        in fmap (fmap (delta_rule 0.1 error 0.1)) inputs
 
 
 -- core function
@@ -80,7 +80,8 @@ train inputs expected_results error error_threshold epoch max_epoch act_function
 
 -- add (weight, value)
 format_input :: Float -> (Float, Float)
-format_input value = (fst (randomR (0,1) (mkStdGen (floor (value * 17)))), value)
+format_input value = 
+    (fst (randomR (0,1) (mkStdGen (floor (value * 17)))), value)
 
 
 -- main
