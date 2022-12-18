@@ -34,25 +34,13 @@ sigmoid_derivative x =
     sigmoid x * (1.0 - sigmoid x )
 
 
--- auxiliar for inputs
-untuple :: (Float, Float) -> Float
-untuple (weight, value) = weight * value
-
-
 -- neuron function
-neuron :: (Float -> Float) -> [(Float,Float)] -> Float -> Float
-neuron activation_function inputs bias =
-    activation_function ( bias + (foldl (+) 0.0 (map untuple inputs)))
-
-
--- delta rule
-delta_rule :: Float -> Float -> Float -> (Float, Float) -> (Float, Float)
-delta_rule n error x (weight, value) = 
-    (weight + n * error * x, value)
-   
+neuron :: (Float -> Float) -> [Float] -> [Float] -> Float
+neuron activation_function inputs weight=
+    activation_function (foldl (+) 0.0 (double_map inputs weight (*) []))
 
     -- w_i(t + 1) = w_i(t) + µ(d(t) - y(t))xi(t)
-    --
+
 
 -- get element at specific position
 data_at :: Int -> [a] -> a
@@ -61,31 +49,47 @@ data_at y (x:xs) | y <= 0 = x
                  | otherwise = data_at (y-1) xs
 
 
--- weight modification
-learn :: [[(Float, Float)]] -> Int -> [Float] -> (Float -> Float) -> [[(Float, Float)]]
-learn inputs element expected_results activation_function =
+-- applying a function over two list
+double_map :: [t1] -> [t2] -> (t1 -> t2 -> a) -> [a] -> [a]
+double_map fst_list snd_list function result_list = case (fst_list, snd_list) of
+        ([],[]) -> result_list
+        ([],snd) -> error "snd list is bigger than fst"
+        (fst,[]) -> error "fst list is bigger than snd"
+        (h1:t1,h2:t2) -> double_map t1 t2 function ((function h1 h2):result_list)
 
-    let error = ((data_at element expected_results) - (neuron activation_function (data_at element inputs) 1.0))
-        in fmap (fmap (delta_rule 0.1 error 0.1)) inputs
+
+-- delta (todo floats)
+-- w_i(t+1) = w_1(t) + r (d_j-y_j(t))x_{j,i}
+-- map con weights(w) y con input(x)
+-- d_j = input_value, y_j = actual_result
+delta learning_rate expected_result actual_result old_weight input_value=
+    old_weight + learning_rate * (expected_result - actual_result) * input_value
+
+
+-- update weights
+update_weights :: [Float] -> [Float] -> Float -> Float -> Float -> [Float]
+update_weights training_values weights learning_rate expected_result actual_result =
+    double_map weights training_values (delta learning_rate expected_result actual_result) []
 
 
 -- core function
-train :: [[(Float,Float)]] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> ([Float],Float)
-train inputs expected_results error error_threshold epoch max_epoch act_function element =
+train :: [[Float]] -> [Float] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> ([Float], Int)
+train inputs weights expected_results error error_threshold epoch max_epoch act_function rng =
     
     if (epoch > max_epoch || error < error_threshold)
-        then ((fmap (fst) (data_at (fst element) inputs)), error)
-    else 
-        train 
-            (learn inputs (fst element) expected_results act_function) 
-            expected_results 
-            ((data_at (fst element) expected_results)-(neuron sigmoid (data_at (fst element) inputs) 1.0))
+        then (weights, epoch) 
+    else let actual_result = (neuron act_function (data_at (fst rng) inputs) weights) in
+        train
+            inputs
+            (update_weights (data_at (fst rng) inputs) weights 0.1 (data_at (fst rng) expected_results) actual_result)
+            expected_results
+            (abs((data_at (fst rng) expected_results) - actual_result))
             error_threshold 
             (epoch + 1) 
             max_epoch 
             act_function 
-            (randomR (0, length inputs) (snd element))
- 
+            (randomR (0, length inputs) (snd rng))
+
 
 -- create weights list
 init_weights :: Int -> (Float, StdGen) -> [Float] -> [Float]
@@ -99,7 +103,7 @@ init_weights n (random, seed) list =
 
 
 -- main
-main :: IO ([Float], Float)
+main :: IO ([Float], Int)
 main = do
     
     all_data <- Normalize.normalize_data
@@ -113,7 +117,7 @@ main = do
 
     -- training inputs calculations
     let inputs = fmap (tail) all_data
-    let bias_inputs = fmap (1:) inputs
+    let formatted_inputs = fmap (1:) inputs
     let weights = init_weights (dimension + 1) (fromIntegral random_number, seed) []
     let real_out = fmap (head) all_data
 
@@ -123,6 +127,6 @@ main = do
     let act_function = heaviside
 
     -- train & store result
-    let (final_weights, epoch) = train formatted_inputs real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
+    let (final_weights, epoch) = train formatted_inputs weights real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
 
     return (final_weights, epoch) 
