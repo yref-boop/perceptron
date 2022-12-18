@@ -76,7 +76,7 @@ update_weights training_values weights learning_rate expected_result actual_resu
 train :: [[Float]] -> [Float] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> ([Float], Int)
 train inputs weights expected_results error error_threshold epoch max_epoch act_function rng =
     
-    if (epoch > max_epoch || error < error_threshold)
+    if (epoch >= max_epoch || error < error_threshold)
         then (weights, epoch) 
     else let actual_result = (neuron act_function (data_at (fst rng) inputs) weights) in
         train
@@ -88,7 +88,7 @@ train inputs weights expected_results error error_threshold epoch max_epoch act_
             (epoch + 1) 
             max_epoch 
             act_function 
-            (randomR (0, length inputs) (snd rng))
+            (randomR (0, length inputs) (mkStdGen (fst rng)))
 
 
 -- create weights list
@@ -123,8 +123,8 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.000001
-    let max_epoch = 700
-    let act_function = heaviside
+    let max_epoch = 100000
+    let act_function = sigmoid
 
     -- train & store result
     let (final_weights, epoch) = train formatted_inputs weights real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
