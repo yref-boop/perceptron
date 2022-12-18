@@ -3,6 +3,12 @@ import Normalize (normalize_data)
 import System.Random 
 
 
+-- heaviside function
+heaviside :: Float -> Float
+heaviside x =
+    if (x > 0) then 1
+        else 0
+
 -- absolute value function
 absolute :: Float -> Float
 absolute x =
@@ -43,7 +49,10 @@ neuron activation_function inputs bias =
 delta_rule :: Float -> Float -> Float -> (Float, Float) -> (Float, Float)
 delta_rule n error x (weight, value) = 
     (weight + n * error * x, value)
+   
 
+    -- w_i(t + 1) = w_i(t) + µ(d(t) - y(t))xi(t)
+    --
 
 -- get element at specific position
 data_at :: Int -> [a] -> a
@@ -56,16 +65,16 @@ data_at y (x:xs) | y <= 0 = x
 learn :: [[(Float, Float)]] -> Int -> [Float] -> (Float -> Float) -> [[(Float, Float)]]
 learn inputs element expected_results activation_function =
 
-    let error = ((data_at element expected_results) - (neuron activation_function (data_at element inputs) 1.0)) 
+    let error = ((data_at element expected_results) - (neuron activation_function (data_at element inputs) 1.0))
         in fmap (fmap (delta_rule 0.1 error 0.1)) inputs
 
 
 -- core function
-train :: [[(Float,Float)]] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> [[Float]]
+train :: [[(Float,Float)]] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> ([Float],Float)
 train inputs expected_results error error_threshold epoch max_epoch act_function element =
     
     if (epoch > max_epoch || error < error_threshold)
-        then return (fmap (fst) (data_at (fst element) inputs))
+        then ((fmap (fst) (data_at (fst element) inputs)), error)
     else 
         train 
             (learn inputs (fst element) expected_results act_function) 
@@ -78,32 +87,42 @@ train inputs expected_results error error_threshold epoch max_epoch act_function
             (randomR (0, length inputs) (snd element))
  
 
--- add (weight, value)
-format_input :: Float -> (Float, Float)
-format_input value = 
-    (fst (randomR (0,1) (mkStdGen (floor (value * 17)))), value)
+-- create weights list
+init_weights :: Int -> (Float, StdGen) -> [Float] -> [Float]
+init_weights n (random, seed) list = 
+    if (n == 0) then list
+    else
+        init_weights 
+            (n-1) 
+            (randomR (0,1000) (mkStdGen(floor random))) 
+            ((random/1000):list) 
 
 
 -- main
-main :: IO ([[Float]])
+main :: IO ([Float], Float)
 main = do
     
     all_data <- Normalize.normalize_data
  
+    -- auxiliar data gathered from input
     let instances = length all_data
     let dimension = length (tail (head all_data))
+
+    -- init random numbers 
+    let (random_number, seed) = randomR (0,instances) (mkStdGen instances)
+
+    -- training inputs calculations
     let inputs = fmap (tail) all_data
-    let formatted_inputs = fmap (fmap (format_input)) inputs
+    let bias_inputs = fmap (1:) inputs
+    let weights = init_weights (dimension + 1) (fromIntegral random_number, seed) []
     let real_out = fmap (head) all_data
 
-    let error_threshold = 1.0
-    let max_epoch = 1000
-    let act_function = sigmoid
+    -- hard-coded training values
+    let error_threshold = 0.000001
+    let max_epoch = 700
+    let act_function = heaviside
 
-    let (value, rng) = randomR (0,instances) (mkStdGen 17)
+    -- train & store result
+    let (final_weights, epoch) = train formatted_inputs real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
 
-    let final_weights = train formatted_inputs real_out 1000 error_threshold 0 max_epoch act_function (value, rng)
-
-    print (final_weights)
-
-    return (final_weights) 
+    return (final_weights, epoch) 
