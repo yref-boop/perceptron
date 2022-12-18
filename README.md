@@ -1,10 +1,9 @@
 # perceptron 
 ### structure
 all different implementations are conceptually identical:
-- a list of pairs, of the form $(w_0,v_1),(w_1,v_1), (w_2,v_2) \ldots (w_n,v_n)$ represents the inputs of a neuron:
-    - the first value of each pair, $w$ represents the weight of the connection
-    - the second, $v$, the current value
-- the current learning algorithm is the delta rule: 
+there are two main list:
+- `[[Float]]`, represents the set of training data, being each sublist one of the training instances input values
+- `[Float]`, represents the weights of the perceptron 
 
 the code should be able to approximate an answer to any linearly separable problem
 
