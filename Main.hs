@@ -3,43 +3,20 @@ import Normalize (normalize_data)
 import System.Random 
 
 
--- heaviside function
-heaviside :: Float -> Float
-heaviside x =
-    if (x > 0) then 1
-        else 0
-
--- absolute value function
-absolute :: Float -> Float
-absolute x =
-    if (x < 0) then -1.0 * x
-        else x
-
-
--- relu function
-relu :: Float ->  Float
-relu x =
-    if (x < 0) then 0
-        else x
-
-
 -- sigmoid function
 sigmoid :: Float -> Float
 sigmoid x = 1.0 / ( 1 + exp (-x) )
 
-
 -- sigmoid derivative
 sigmoid_derivative :: Float -> Float
 sigmoid_derivative x =
-    sigmoid x * (1.0 - sigmoid x )
+    sigmoid x * (1.0 - sigmoid x )  -- font used in graphical applications
 
 
 -- neuron function
 neuron :: (Float -> Float) -> [Float] -> [Float] -> Float
 neuron activation_function inputs weight=
     activation_function (foldl (+) 0.0 (double_map inputs weight (*) []))
-
-    -- w_i(t + 1) = w_i(t) + µ(d(t) - y(t))xi(t)
 
 
 -- get element at specific position
@@ -58,10 +35,7 @@ double_map fst_list snd_list function result_list = case (fst_list, snd_list) of
         (h1:t1,h2:t2) -> double_map t1 t2 function ((function h1 h2):result_list)
 
 
--- delta (todo floats)
--- w_i(t+1) = w_1(t) + r (d_j-y_j(t))x_{j,i}
--- map con weights(w) y con input(x)
--- d_j = input_value, y_j = actual_result
+-- delta rule 
 delta learning_rate expected_result actual_result old_weight input_value=
     old_weight + learning_rate * (expected_result - actual_result) * input_value
 
@@ -81,7 +55,7 @@ train inputs weights expected_results error error_threshold epoch max_epoch act_
     else let actual_result = (neuron act_function (data_at (fst rng) inputs) weights) in
         train
             inputs
-            (update_weights (data_at (fst rng) inputs) weights 0.1 (data_at (fst rng) expected_results) actual_result)
+            (update_weights (data_at (fst rng) inputs) weights 0.5 (data_at (fst rng) expected_results) actual_result)
             expected_results
             (abs((data_at (fst rng) expected_results) - actual_result))
             error_threshold 
@@ -122,8 +96,8 @@ main = do
     let real_out = fmap (head) all_data
 
     -- hard-coded training values
-    let error_threshold = 0.000001
-    let max_epoch = 100000
+    let error_threshold = 0.0000001
+    let max_epoch = 300000
     let act_function = sigmoid
 
     -- train & store result
