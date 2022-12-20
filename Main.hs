@@ -20,10 +20,10 @@ neuron activation_function inputs weight=
 
 
 -- get element at specific position
-data_at :: Int -> [a] -> a
-data_at _ [] = error "empty data list"
-data_at y (x:xs) | y <= 0 = x
-                 | otherwise = data_at (y-1) xs
+get :: Int -> [a] -> a
+get _ [] = error "empty data list"
+get y (x:xs) | y <= 0 = x
+                 | otherwise = get (y-1) xs
 
 
 -- applying a function over two list
@@ -36,33 +36,30 @@ double_map fst_list snd_list function result_list = case (fst_list, snd_list) of
 
 
 -- delta rule 
-delta learning_rate expected_result actual_result old_weight input_value=
+delta :: Float -> Float -> Float -> Float -> Float -> Float 
+delta learning_rate expected_result actual_result old_weight input_value = 
     old_weight + learning_rate * (expected_result - actual_result) * input_value
 
 
--- update weights
-update_weights :: [Float] -> [Float] -> Float -> Float -> Float -> [Float]
-update_weights training_values weights learning_rate expected_result actual_result =
-    double_map weights training_values (delta learning_rate expected_result actual_result) []
+-- get next inte
+next_rng :: Int -> Int -> Int
+next_rng limit rng = fst(randomR (0, limit) (mkStdGen rng))
 
 
--- core function
-train :: [[Float]] -> [Float] -> [Float] -> Float -> Float -> Int -> Int -> (Float -> Float) -> (Int, StdGen) -> ([Float], Int)
-train inputs weights expected_results error error_threshold epoch max_epoch act_function rng =
+-- update weights 
+learn :: [Float] -> Float -> Float -> (Float -> Float) -> [Float] -> [Float]
+learn training_set learning_rate expected_result act_function weights =
     
-    if (epoch >= max_epoch || error < error_threshold)
-        then (weights, epoch) 
-    else let actual_result = (neuron act_function (data_at (fst rng) inputs) weights) in
-        train
-            inputs
-            (update_weights (data_at (fst rng) inputs) weights 0.5 (data_at (fst rng) expected_results) actual_result)
-            expected_results
-            (abs((data_at (fst rng) expected_results) - actual_result))
-            error_threshold 
-            (epoch + 1) 
-            max_epoch 
-            act_function 
-            (randomR (0, length inputs) (mkStdGen (fst rng)))
+    let actual_results = (neuron act_function training_set weights) in 
+    zipWith (delta learning_rate expected_result actual_results) weights training_set
+
+
+-- TODO:
+    -- iterate
+    -- generate new random value in each iteration (?)
+train :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
+train training_set learning_rate expected_results act_function pos weights =
+    learn training_set learning_rate expected_results act_function pos weights
 
 
 -- create weights list
@@ -101,6 +98,7 @@ main = do
     let act_function = sigmoid
 
     -- train & store result
-    let (final_weights, epoch) = train formatted_inputs weights real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
+    --let (final_weights, epoch) = train formatted_inputs weights real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
 
-    return (final_weights, epoch) 
+    --return (final_weights, epoch) 
+    return ([],0)
