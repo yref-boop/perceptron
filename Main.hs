@@ -41,10 +41,13 @@ delta learning_rate expected_result actual_result old_weight input_value =
     old_weight + learning_rate * (expected_result - actual_result) * input_value
 
 
--- get next inte
+-- get next random integer
 next_rng :: Int -> Int -> Int
 next_rng limit rng = fst(randomR (0, limit) (mkStdGen rng))
 
+-- get all random numbers
+all_rng :: Int -> Int -> [Int]
+all_rng limit rng = iterate (next_rng limit) rng
 
 -- update weights 
 learn :: [Float] -> Float -> Float -> (Float -> Float) -> [Float] -> [Float]
@@ -83,8 +86,9 @@ main = do
     let instances = length all_data
     let dimension = length (tail (head all_data))
 
-    -- init random numbers 
-    let (random_number, seed) = randomR (0,instances) (mkStdGen instances)
+    -- init random numbers
+    rng_seed <- newStdGen
+    let (random_number, seed) = randomR (0,instances) (rng_seed)
 
     -- training inputs calculations
     let inputs = fmap (tail) all_data
