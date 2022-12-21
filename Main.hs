@@ -23,7 +23,7 @@ neuron activation_function inputs weight=
 get :: Int -> [a] -> a
 get _ [] = error "empty data list"
 get y (x:xs) | y <= 0 = x
-                 | otherwise = get (y-1) xs
+             | otherwise = get (y-1) xs
 
 
 -- applying a function over two list
@@ -45,11 +45,8 @@ delta learning_rate expected_result actual_result old_weight input_value =
 next_rng :: Int -> Int -> Int
 next_rng limit rng = fst(randomR (0, limit) (mkStdGen rng))
 
--- get all random numbers
-all_rng :: Int -> Int -> [Int]
-all_rng limit rng = iterate (next_rng limit) rng
 
--- update weights 
+-- update weights given specific example 
 learn :: [Float] -> Float -> Float -> (Float -> Float) -> [Float] -> [Float]
 learn training_set learning_rate expected_result act_function weights =
     
@@ -57,23 +54,13 @@ learn training_set learning_rate expected_result act_function weights =
     zipWith (delta learning_rate expected_result actual_results) weights training_set
 
 
+-- iterate learn function over weights using different examples each time
 -- TODO:
     -- iterate
     -- generate new random value in each iteration (?)
 train :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
 train training_set learning_rate expected_results act_function pos weights =
-    learn training_set learning_rate expected_results act_function pos weights
-
-
--- create weights list
-init_weights :: Int -> (Float, StdGen) -> [Float] -> [Float]
-init_weights n (random, seed) list = 
-    if (n == 0) then list
-    else
-        init_weights 
-            (n-1) 
-            (randomR (0,1000) (mkStdGen(floor random))) 
-            ((random/1000):list) 
+    learn (get pos training_set) learning_rate (get pos expected_results) act_function weights
 
 
 -- main
@@ -93,7 +80,8 @@ main = do
     -- training inputs calculations
     let inputs = fmap (tail) all_data
     let formatted_inputs = fmap (1:) inputs
-    let weights = init_weights (dimension + 1) (fromIntegral random_number, seed) []
+    let int_weights = take (dimension + 1) (iterate (next_rng 1000) random_number)
+    let weights = map ((/1000).fromInteger.toInteger) int_weights
     let real_out = fmap (head) all_data
 
     -- hard-coded training values
@@ -102,7 +90,7 @@ main = do
     let act_function = sigmoid
 
     -- train & store result
-    --let (final_weights, epoch) = train formatted_inputs weights real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
+    let final_weights = train formatted_inputs weights real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
 
     --return (final_weights, epoch) 
-    return ([],0)
+    return (final_weights!!max_epoch)
