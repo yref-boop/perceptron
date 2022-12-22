@@ -32,6 +32,4 @@ normalize_data = do
     let normalized_data = map (normalize_aux) transposed_contents
     let normalized_original = transpose normalized_data
 
-    print(head normalized_original)
-
     return normalized_original

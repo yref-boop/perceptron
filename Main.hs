@@ -68,9 +68,6 @@ train training_set learning_rate expected_results act_function instances seed =
 
 -- apply recursively functions from a list and give output as input of the next
 -- idea: fn(...f4(f3(f2(f1(a))))...)
---
--- iterate f x =  x : iterate f (f x)
-zip_iterate :: [[a] -> [a]] -> [a] -> [[a]]
 zip_iterate functions initial_value =
     zip_iterate_aux functions initial_value 0
     where
@@ -82,7 +79,9 @@ zip_iterate functions initial_value =
 -- gives real result & estimated on a random example
 check_weights :: [Float] -> [Float] -> (Float, Float)
 check_weights weights random = 
-    ((head random),(foldl (+) (zipWith (*) weights (tail random))))
+     ((head random),(foldl (+) 0.0 (zipWith (*) weights (tail random))))
+
+
 
 
 -- main
@@ -108,17 +107,19 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.0000001
-    let max_epoch = 100000
+    let max_epoch = 200000
     let act_function = sigmoid
 
     -- get all train functions
-    let train_functions = train formatted_inputs 0.75 real_out act_function instances random_number
+    let train_functions = train formatted_inputs 0.5 real_out act_function instances random_number
 
     -- apply train functions & print results
     let final_weight = (zip_iterate train_functions weights) !! max_epoch
     print final_weight
-    
-    -- get example 
-    let check = check_weights final_weight (get random_number all_data)
 
+    -- check discrepancy with a random example 
+    let check = check_weights final_weight (get random_number all_data)
+    print check
+
+    -- return value
     return final_weight
