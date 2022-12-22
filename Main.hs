@@ -66,13 +66,23 @@ train training_set learning_rate expected_results act_function instances seed =
     map (learn training_set learning_rate expected_results act_function) all_rng
 
 
-zipIterate :: [[a] -> [a]] -> [a] -> [[a]]
--- zipIterate func_list initial =
---     zipIterate_aux func_list initial 0 []
---     where
---     zipIterate_aux func_list initial iteration result =
---         (func_list !! iteration) initial
+-- apply recursively functions from a list and give output as input of the next
+-- idea: fn(...f4(f3(f2(f1(a))))...)
+--
+-- iterate f x =  x : iterate f (f x)
+zip_iterate :: [[a] -> [a]] -> [a] -> [[a]]
+zip_iterate functions initial_value =
+    zip_iterate_aux functions initial_value 0
+    where
+        zip_iterate_aux :: [[a] -> [a]] -> [a] -> Int -> [[a]]
+        zip_iterate_aux func_list input count =   
+            input : (zip_iterate_aux func_list ((func_list !! count)input) (count + 1))
 
+
+-- gives real result & estimated on a random example
+check_weights :: [Float] -> [Float] -> (Float, Float)
+check_weights weights random = 
+    ((head random),(foldl (+) (zipWith (*) weights (tail random))))
 
 
 -- main
@@ -98,11 +108,17 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.0000001
-    let max_epoch = 5001
+    let max_epoch = 100000
     let act_function = sigmoid
 
-    -- train & store result
-    -- let final_weights = zipIterate (train formatted_inputs 0.75 real_out act_function instances random_number) weights
+    -- get all train functions
+    let train_functions = train formatted_inputs 0.75 real_out act_function instances random_number
 
-    return []
-    -- return (final_weights !! max_epoch)
+    -- apply train functions & print results
+    let final_weight = (zip_iterate train_functions weights) !! max_epoch
+    print final_weight
+    
+    -- get example 
+    let check = check_weights final_weight (get random_number all_data)
+
+    return final_weight
