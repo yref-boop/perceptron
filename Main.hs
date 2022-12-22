@@ -2,7 +2,6 @@ module Main (main) where
 import Normalize (normalize_data)
 import System.Random 
 
-
 -- sigmoid function
 sigmoid :: Float -> Float
 sigmoid x = 1.0 / ( 1 + exp (-x) )
@@ -43,28 +42,41 @@ delta learning_rate expected_result actual_result old_weight input_value =
 
 -- get next random integer
 next_rng :: Int -> Int -> Int
-next_rng limit rng = fst(randomR (0, limit) (mkStdGen rng))
+next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 
 
 -- update weights given specific example 
-learn :: [Float] -> Float -> Float -> (Float -> Float) -> [Float] -> [Float]
-learn training_set learning_rate expected_result act_function weights =
-    
+update_weights :: [Float] -> Float -> Float -> (Float -> Float) -> [Float] -> [Float]
+update_weights training_set learning_rate expected_result act_function weights =
+
     let actual_results = (neuron act_function training_set weights) in 
     zipWith (delta learning_rate expected_result actual_results) weights training_set
 
 
 -- iterate learn function over weights using different examples each time
--- TODO:
-    -- iterate
-    -- generate new random value in each iteration (?)
-train :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
-train training_set learning_rate expected_results act_function pos weights =
-    learn (get pos training_set) learning_rate (get pos expected_results) act_function weights
+learn :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
+learn training_set learning_rate expected_results act_function pos weights =
+    update_weights (get pos training_set) learning_rate (get pos expected_results) act_function weights
+
+
+-- list of learning functions with each position 
+train :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
+train training_set learning_rate expected_results act_function instances seed =
+    let all_rng = iterate (next_rng instances) seed in
+    map (learn training_set learning_rate expected_results act_function) all_rng
+
+
+zipIterate :: [[a] -> [a]] -> [a] -> [[a]]
+-- zipIterate func_list initial =
+--     zipIterate_aux func_list initial 0 []
+--     where
+--     zipIterate_aux func_list initial iteration result =
+--         (func_list !! iteration) initial
+
 
 
 -- main
-main :: IO ([Float], Int)
+main :: IO ([Float])
 main = do
     
     all_data <- Normalize.normalize_data
@@ -86,11 +98,11 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.0000001
-    let max_epoch = 300000
+    let max_epoch = 5001
     let act_function = sigmoid
 
     -- train & store result
-    let final_weights = train formatted_inputs weights real_out 1 error_threshold 0 max_epoch act_function (random_number, seed)
+    -- let final_weights = zipIterate (train formatted_inputs 0.75 real_out act_function instances random_number) weights
 
-    --return (final_weights, epoch) 
-    return (final_weights!!max_epoch)
+    return []
+    -- return (final_weights !! max_epoch)
