@@ -2,6 +2,7 @@ module Main (main) where
 import Normalize (normalize_data)
 import System.Random 
 
+
 -- sigmoid function
 sigmoid :: Float -> Float
 sigmoid x = 1.0 / ( 1 + exp (-x) )
@@ -12,26 +13,10 @@ sigmoid_derivative x =
     sigmoid x * (1.0 - sigmoid x )  -- font used in graphical applications
 
 
--- neuron function
+-- neuron function (weighted sum of inputs)
 neuron :: (Float -> Float) -> [Float] -> [Float] -> Float
 neuron activation_function inputs weight=
-    activation_function (foldl (+) 0.0 (double_map inputs weight (*) []))
-
-
--- get element at specific position
-get :: Int -> [a] -> a
-get _ [] = error "empty data list"
-get y (x:xs) | y <= 0 = x
-             | otherwise = get (y-1) xs
-
-
--- applying a function over two list
-double_map :: [t1] -> [t2] -> (t1 -> t2 -> a) -> [a] -> [a]
-double_map fst_list snd_list function result_list = case (fst_list, snd_list) of
-        ([],[]) -> result_list
-        ([],snd) -> error "snd list is bigger than fst"
-        (fst,[]) -> error "fst list is bigger than snd"
-        (h1:t1,h2:t2) -> double_map t1 t2 function ((function h1 h2):result_list)
+    activation_function (foldl (+) 0.0 (zipWith (*) inputs weight))
 
 
 -- delta rule 
@@ -56,7 +41,7 @@ update_weights training_set learning_rate expected_result act_function weights =
 -- iterate learn function over weights using different examples each time
 learn :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
 learn training_set learning_rate expected_results act_function pos weights =
-    update_weights (get pos training_set) learning_rate (get pos expected_results) act_function weights
+    update_weights (training_set !! pos) learning_rate (expected_results !! pos) act_function weights
 
 
 -- list of learning functions with each position 
@@ -118,7 +103,7 @@ main = do
     print final_weight
 
     -- check discrepancy with a random example 
-    let check = check_weights final_weight (get random_number all_data)
+    let check = check_weights final_weight (all_data !! random_number)
     print check
 
     -- return value
