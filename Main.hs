@@ -10,7 +10,7 @@ sigmoid x = 1.0 / ( 1 + exp (-x) )
 -- sigmoid derivative
 sigmoid_derivative :: Float -> Float
 sigmoid_derivative x =
-    sigmoid x * (1.0 - sigmoid x )  -- font used in graphical applications
+    sigmoid x * (1.0 - sigmoid x )
 
 
 -- neuron function (weighted sum of inputs)
@@ -20,9 +20,10 @@ neuron activation_function inputs weight=
 
 
 -- delta rule 
-delta :: Float -> Float -> Float -> Float -> Float -> Float 
-delta learning_rate expected_result actual_result old_weight input_value = 
-    old_weight + learning_rate * (expected_result - actual_result) * input_value
+delta :: Float -> Float -> Float -> Float -> Float 
+delta expected_result actual_result old_weight input_value = 
+    let error = (expected_result - actual_result) in
+    old_weight + (sigmoid_derivative error) * (error) * input_value
 
 
 -- get next random integer
@@ -35,7 +36,7 @@ update_weights :: [Float] -> Float -> Float -> (Float -> Float) -> [Float] -> [F
 update_weights training_set learning_rate expected_result act_function weights =
 
     let actual_results = (neuron act_function training_set weights) in 
-    zipWith (delta learning_rate expected_result actual_results) weights training_set
+    zipWith (delta expected_result actual_results) weights training_set
 
 
 -- iterate learn function over weights using different examples each time
@@ -53,6 +54,7 @@ train training_set learning_rate expected_results act_function instances seed =
 
 -- apply recursively functions from a list and give output as input of the next
 -- idea: fn(...f4(f3(f2(f1(a))))...)
+zip_iterate :: [[a] -> [a]] -> [a] -> [[a]]
 zip_iterate functions initial_value =
     zip_iterate_aux functions initial_value 0
     where
@@ -65,7 +67,6 @@ zip_iterate functions initial_value =
 check_weights :: [Float] -> [Float] -> (Float, Float)
 check_weights weights random = 
      ((head random),(foldl (+) 0.0 (zipWith (*) weights (tail random))))
-
 
 
 
@@ -84,8 +85,7 @@ main = do
     let (random_number, seed) = randomR (0,instances) (rng_seed)
 
     -- training inputs calculations
-    let inputs = fmap (tail) all_data
-    let formatted_inputs = fmap (1:) inputs
+    let training_set = fmap (1:) (fmap tail all_data)
     let int_weights = take (dimension + 1) (iterate (next_rng 1000) random_number)
     let weights = map ((/1000).fromInteger.toInteger) int_weights
     let real_out = fmap (head) all_data
@@ -96,7 +96,7 @@ main = do
     let act_function = sigmoid
 
     -- get all train functions
-    let train_functions = train formatted_inputs 0.5 real_out act_function instances random_number
+    let train_functions = train training_set 0.5 real_out act_function instances random_number
 
     -- apply train functions & print results
     let final_weight = (zip_iterate train_functions weights) !! max_epoch
