@@ -99,11 +99,17 @@ main = do
     let final_weight = (zip_iterate train_functions weights) !! max_epoch
     print final_weight
 
+    -- optimization (time/2?????)
+    let next_weight = (zip_iterate (take max_epoch train_functions) final_weight) !!1
+    print next_weight
+
     -- check discrepancy with a random example
     let checks_num = 2500
     let error_list = take checks_num (check_weights final_weight all_data random_number instances) 
     let error_mean = (foldl (+) 0 error_list) / fromInteger(toInteger(checks_num))
     print error_mean
+
+    print random_number
 
     -- return value
     return final_weight
