@@ -33,17 +33,17 @@ next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 
 
 -- iterate learn function over weights using different examples each time
-update_weights :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
-update_weights training_set learning_rate expected_results act_function pos weights =
+update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
+update_weights training_set expected_results act_function pos weights =
     let actual_result = (neuron act_function (training_set !! pos) (weights)) in
     zipWith (delta (expected_results !! pos) actual_result) weights (training_set !! pos)
 
 
 -- list of learning functions with each position 
-train :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
-train training_set learning_rate expected_results act_function instances seed =
+train :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
+train training_set expected_results act_function instances seed =
     let all_rng = iterate (next_rng instances) seed in
-    map (update_weights training_set learning_rate expected_results act_function) all_rng
+    map (update_weights training_set expected_results act_function) all_rng
 
 
 -- apply recursively functions from a list and give output as input of the next
@@ -81,17 +81,17 @@ main = do
 
     -- training inputs calculations
     let training_set = fmap (1:) (fmap tail all_data)
-    let int_weights = take (dimension + 1) (iterate (next_rng 1000) random_number)
+    let int_weights = take (dimension + 1) (iterate (next_rng instances) random_number)
     let weights = map ((/1000).fromInteger.toInteger) int_weights
     let real_out = fmap (head) all_data
 
     -- hard-coded training values
     let error_threshold = 0.0000001
-    let max_epoch = 200000
+    let max_epoch = 100000
     let act_function = sigmoid
 
     -- get all train functions
-    let train_functions = train training_set 0.5 real_out act_function instances random_number
+    let train_functions = train training_set real_out act_function instances random_number
 
     -- apply train functions & print results
     let final_weight = (zip_iterate train_functions weights) !! max_epoch
