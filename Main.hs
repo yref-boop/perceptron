@@ -7,6 +7,7 @@ import System.Random
 sigmoid :: Float -> Float
 sigmoid x = 1.0 / ( 1 + exp (-x) )
 
+
 -- sigmoid derivative
 sigmoid_derivative :: Float -> Float
 sigmoid_derivative x =
@@ -31,25 +32,18 @@ next_rng :: Int -> Int -> Int
 next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 
 
--- update weights given specific example 
-update_weights :: [Float] -> Float -> Float -> (Float -> Float) -> [Float] -> [Float]
-update_weights training_set learning_rate expected_result act_function weights =
-
-    let actual_results = (neuron act_function training_set weights) in 
-    zipWith (delta expected_result actual_results) weights training_set
-
-
 -- iterate learn function over weights using different examples each time
-learn :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
-learn training_set learning_rate expected_results act_function pos weights =
-    update_weights (training_set !! pos) learning_rate (expected_results !! pos) act_function weights
+update_weights :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
+update_weights training_set learning_rate expected_results act_function pos weights =
+    let actual_result = (neuron act_function (training_set !! pos) (weights)) in
+    zipWith (delta (expected_results !! pos) actual_result) weights (training_set !! pos)
 
 
 -- list of learning functions with each position 
 train :: [[Float]] -> Float -> [Float] -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
 train training_set learning_rate expected_results act_function instances seed =
     let all_rng = iterate (next_rng instances) seed in
-    map (learn training_set learning_rate expected_results act_function) all_rng
+    map (update_weights training_set learning_rate expected_results act_function) all_rng
 
 
 -- apply recursively functions from a list and give output as input of the next
@@ -74,6 +68,7 @@ check_weights weights random =
 main :: IO ([Float])
 main = do
     
+    -- store normalized data from data.txt
     all_data <- Normalize.normalize_data
  
     -- auxiliar data gathered from input
