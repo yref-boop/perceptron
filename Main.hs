@@ -60,11 +60,9 @@ zip_iterate functions initial_value =
 -- gives real result & estimated on a random example
 check_weights :: [Float] -> [[Float]] -> Int -> Int -> [Float]
 check_weights weights training_set random instances = 
-    let 
-    approximation = head (training_set !! random) - 
-        (foldl (+) 0.0 (zipWith (*) weights (tail (training_set !! random))))
-
-    in approximation : check_weights weights training_set (next_rng instances random) instances
+    let approximation = (foldl (+) 0.0 (zipWith (*) weights (tail (training_set !! random)))) 
+    in (head (training_set !! random) - approximation) : 
+        check_weights weights training_set (next_rng instances random) instances
 
 
 
@@ -91,7 +89,7 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.0000001
-    let max_epoch = 100000
+    let max_epoch = 300000
     let act_function = sigmoid
 
     -- get all train functions
@@ -102,7 +100,7 @@ main = do
     print final_weight
 
     -- check discrepancy with a random example
-    let checks_num = 100
+    let checks_num = 2500
     let error_list = take checks_num (check_weights final_weight all_data random_number instances) 
     let error_mean = (foldl (+) 0 error_list) / fromInteger(toInteger(checks_num))
     print error_mean
