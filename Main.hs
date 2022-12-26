@@ -46,17 +46,6 @@ train training_set expected_results act_function instances seed =
     map (update_weights training_set expected_results act_function) all_rng
 
 
--- apply recursively functions from a list and give output as input of the next
--- idea: fn(...f4(f3(f2(f1(a))))...)
-zip_iterate :: [[a] -> [a]] -> [a] -> [[a]]
-zip_iterate functions initial_value =
-    zip_iterate_aux functions initial_value 0
-    where
-        zip_iterate_aux :: [[a] -> [a]] -> [a] -> Int -> [[a]]
-        zip_iterate_aux func_list input count =   
-            input : (zip_iterate_aux func_list ((func_list !! count)input) (count + 1))
-
-
 -- gives real result & estimated on a random example
 check_weights :: [Float] -> [[Float]] -> Int -> Int -> [Float]
 check_weights weights training_set random instances = 
@@ -96,20 +85,14 @@ main = do
     let train_functions = train training_set real_out act_function instances random_number
 
     -- apply train functions & print results
-    let final_weight = (zip_iterate train_functions weights) !! max_epoch
+    let final_weight = scanl (\x f -> f x) weights train_functions !! max_epoch
     print final_weight
-
-    -- optimization (time/2?????)
-    let next_weight = (zip_iterate (take max_epoch train_functions) final_weight) !!1
-    print next_weight
 
     -- check discrepancy with a random example
     let checks_num = 2500
     let error_list = take checks_num (check_weights final_weight all_data random_number instances) 
     let error_mean = (foldl (+) 0 error_list) / fromInteger(toInteger(checks_num))
     print error_mean
-
-    print random_number
 
     -- return value
     return final_weight
