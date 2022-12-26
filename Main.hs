@@ -1,6 +1,7 @@
 module Main (main) where
 import Normalize (normalize_data)
-import System.Random 
+import System.Random
+import Data.List
 
 
 -- sigmoid function
@@ -85,7 +86,7 @@ main = do
     let train_functions = train training_set real_out act_function instances random_number
 
     -- apply train functions & print results
-    let final_weight = scanl (\x f -> f x) weights train_functions !! max_epoch
+    let final_weight = scanl' (\x f -> f x) weights train_functions !! max_epoch
     print final_weight
 
     -- check discrepancy with a random example
