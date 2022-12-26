@@ -1,13 +1,6 @@
 # perceptron 
-### structure
-all different implementations are conceptually identical:
-there are two main list:
-- `[[Float]]`, represents the set of training data, being each sublist one of the training instances input values
-- `[Float]`, represents the weights of the perceptron 
 
-the code should be able to approximate an answer to any linearly separable problem
-
-### input
+## input
 data is written on the data.txt file such that:
 
 ```math
