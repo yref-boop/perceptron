@@ -1,12 +1,6 @@
 module Normalize (normalize_data) where
 import Read (read_data)
-
-
--- transpose list 
--- ([[a,b,c],[e,f,g],[h,i,j]] --> [[a,e,h],[b,f,i],[e,g,j]])
-transpose :: [[Float]] -> [[Float]]
-transpose ([]:_) = []
-transpose x = (map head x) : transpose (map tail x)
+import Data.List
 
 
 -- normalize one single list
