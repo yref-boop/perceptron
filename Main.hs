@@ -34,14 +34,15 @@ next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 
 
 -- iterate learn function over weights using different examples each time
-update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
-update_weights training_set expected_results act_function pos weights =
+update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> ([Float], Float) -> ([Float], Float)
+update_weights training_set expected_results act_function pos (weights, error) =
     let actual_result = (neuron act_function (training_set !! pos) (weights)) in
-    zipWith (delta (expected_results !! pos) actual_result) weights (training_set !! pos)
+    ((zipWith (delta (expected_results !! pos) actual_result) weights (training_set !! pos)),
+    abs((expected_results !! pos) - actual_result))
 
 
 -- list of learning functions with each position 
-train :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
+train :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> Int -> [([Float],Float) -> ([Float],Float)]
 train training_set expected_results act_function instances seed =
     let all_rng = iterate (next_rng instances) seed in
     map (update_weights training_set expected_results act_function) all_rng
@@ -57,7 +58,7 @@ check_weights weights training_set random instances =
 
 
 -- main
-main :: IO ([Float])
+main :: IO ([Float], Float)
 main = do
     
     -- store normalized data from data.txt
@@ -79,19 +80,19 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.0000001
-    let max_epoch = 300000
+    let max_epoch = 100000
     let act_function = sigmoid
 
     -- get all train functions
     let train_functions = train training_set real_out act_function instances random_number
 
     -- apply train functions & print results
-    let final_weight = scanl' (\x f -> f x) weights train_functions !! max_epoch
+    let final_weight = (scanl' (\x f -> f x) (weights, 10.0) train_functions) !! max_epoch
     print final_weight
 
     -- check discrepancy with a random example
     let checks_num = 2500
-    let error_list = take checks_num (check_weights final_weight all_data random_number instances) 
+    let error_list = take checks_num (check_weights (fst final_weight) all_data random_number instances) 
     let error_mean = (foldl (+) 0 error_list) / fromInteger(toInteger(checks_num))
     print error_mean
 
