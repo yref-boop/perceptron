@@ -22,9 +22,8 @@ neuron activation_function inputs weight=
 
 
 -- delta rule 
-delta :: Float -> Float -> Float -> Float -> Float 
-delta expected_result actual_result old_weight input_value = 
-    let error = (expected_result - actual_result) in
+delta :: Float -> Float -> Float -> Float 
+delta error old_weight input_value = 
     old_weight + (sigmoid_derivative error) * (error) * input_value
 
 
@@ -36,9 +35,8 @@ next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 -- iterate learn function over weights using different examples each time
 update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> ([Float], Float) -> ([Float], Float)
 update_weights training_set expected_results act_function pos (weights, error) =
-    let actual_result = (neuron act_function (training_set !! pos) (weights)) in
-    ((zipWith (delta (expected_results !! pos) actual_result) weights (training_set !! pos)),
-    abs((expected_results !! pos) - actual_result))
+    let error = (expected_results !! pos) - (neuron act_function (training_set !! pos) (weights)) in
+    ((zipWith (delta error) weights (training_set !! pos)), abs(error))
 
 
 -- list of learning functions with each position 
@@ -80,7 +78,7 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.0000001
-    let max_epoch = 100000
+    let max_epoch = 1000000
     let act_function = sigmoid
 
     -- get all train functions
