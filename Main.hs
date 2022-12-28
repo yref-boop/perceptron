@@ -4,6 +4,8 @@ import System.Random
 import Data.List
 
 
+----- # TRAINING # -----
+
 -- sigmoid function
 sigmoid :: Float -> Float
 sigmoid x = 1.0 / ( 1 + exp (-x) )
@@ -36,7 +38,7 @@ next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
 update_weights training_set expected_results act_function pos weights =
     let error = (expected_results !! pos) - (neuron act_function (training_set !! pos) (weights)) in
-    (zipWith (delta error) weights (training_set !! pos))
+    zipWith (delta error) weights (training_set !! pos)
 
 
 -- list of learning functions with each position 
@@ -47,16 +49,34 @@ train training_set expected_results act_function instances seed =
 
 
 
+----- # SELECTION # -----
+
+-- test given weight
+evaluate_weight :: [[Float]] -> [Float] -> Int -> Int-> [Float]
+evaluate_weight training_set weight random_number instances =
+    let approximation = (foldl (+) 0.0 (zipWith (*) weight (tail (training_set !! random_number))))
+    in (head (training_set !! random_number) - approximation) :
+        evaluate_weight training_set weight (next_rng instances random_number) instances
 
 
--- get optimal weight value
-optimize :: [[Float]] -> Int -> [[Float]]
-optimize weight_list max_iteration = 
-    take max_iteration weight_list
+-- aux function
+check_weight :: [[Float]] -> Int -> Int -> Int -> [Float] -> Float
+check_weight  training_set random_number instances iterations weight =
+    let list = (evaluate_weight training_set weight random_number instances)
+    in abs(foldl (+) 0.0 (take iterations list))
 
 
--- main
-main :: IO [[Float]]
+-- check_weight (weight ...) !! max_value
+select_optimal:: [[Float]] -> [[Float]] -> Int  -> Int -> Int -> Int -> (Float, [Float])
+select_optimal training_set weights random_number instances iterations max_epoch =
+    let weight_error = take max_epoch (map (check_weight training_set random_number instances iterations) weights)
+        in minimum (zip weight_error weights)
+
+
+
+----- # MAIN # -----
+
+main :: IO (Float,[Float])
 main = do
     
     -- store normalized data from data.txt
@@ -88,8 +108,9 @@ main = do
     let trained_weights = scanl' (\x f -> f x) weights train_functions
 
     -- get optimal value
-    let checks_num = 2500
-    let optimal_weight = optimize trained_weights max_epoch 
+    let checks_num = 14
+    let optimal_weight = select_optimal trained_weights trained_weights random_number instances checks_num max_epoch
+    --let optimal_weight = (0,(trained_weights !! max_epoch))
 
     -- print & return value
     print optimal_weight
