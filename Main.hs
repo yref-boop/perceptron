@@ -33,30 +33,30 @@ next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 
 
 -- iterate learn function over weights using different examples each time
-update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> ([Float], Float) -> ([Float], Float)
-update_weights training_set expected_results act_function pos (weights, error) =
+update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
+update_weights training_set expected_results act_function pos weights =
     let error = (expected_results !! pos) - (neuron act_function (training_set !! pos) (weights)) in
-    ((zipWith (delta error) weights (training_set !! pos)), abs(error))
+    (zipWith (delta error) weights (training_set !! pos))
 
 
 -- list of learning functions with each position 
-train :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> Int -> [([Float],Float) -> ([Float],Float)]
+train :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
 train training_set expected_results act_function instances seed =
     let all_rng = iterate (next_rng instances) seed in
     map (update_weights training_set expected_results act_function) all_rng
 
 
--- gives real result & estimated on a random example
-check_weights :: [Float] -> [[Float]] -> Int -> Int -> [Float]
-check_weights weights training_set random instances = 
-    let approximation = (foldl (+) 0.0 (zipWith (*) weights (tail (training_set !! random)))) 
-    in (head (training_set !! random) - approximation) : 
-        check_weights weights training_set (next_rng instances random) instances
 
+
+
+-- get optimal weight value
+optimize :: [[Float]] -> Int -> [[Float]]
+optimize weight_list max_iteration = 
+    take max_iteration weight_list
 
 
 -- main
-main :: IO ([Float], Float)
+main :: IO [[Float]]
 main = do
     
     -- store normalized data from data.txt
@@ -77,7 +77,7 @@ main = do
     let real_out = fmap (head) all_data
 
     -- hard-coded training values
-    let error_threshold = 0.0000001
+    let error_threshold = 0.001
     let max_epoch = 1000000
     let act_function = sigmoid
 
@@ -85,14 +85,12 @@ main = do
     let train_functions = train training_set real_out act_function instances random_number
 
     -- apply train functions & print results
-    let final_weight = (scanl' (\x f -> f x) (weights, 10.0) train_functions) !! max_epoch
-    print final_weight
+    let trained_weights = scanl' (\x f -> f x) weights train_functions
 
-    -- check discrepancy with a random example
+    -- get optimal value
     let checks_num = 2500
-    let error_list = take checks_num (check_weights (fst final_weight) all_data random_number instances) 
-    let error_mean = (foldl (+) 0 error_list) / fromInteger(toInteger(checks_num))
-    print error_mean
+    let optimal_weight = optimize trained_weights max_epoch 
 
-    -- return value
-    return final_weight
+    -- print & return value
+    print optimal_weight
+    return optimal_weight
