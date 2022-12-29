@@ -51,26 +51,36 @@ train training_set expected_results act_function instances seed =
 
 ----- # SELECTION # -----
 
+-- zip+fold O(n)
+zip_fold :: Num c => (a -> b -> c) -> [a] -> [b] -> c
+zip_fold f = aux 0
+    where
+        aux n [] _ = n
+        aux n _ [] = n
+        aux n (x:xs) (y:ys) = aux (f x y) xs ys
+
+
 -- test given weight
-evaluate_weight :: [[Float]] -> [Float] -> Int -> Int-> [Float]
+evaluate_weight :: [[Float]] -> [Float] -> Int -> Int -> [Float]
 evaluate_weight training_set weight random_number instances =
-    let approximation = (foldl (+) 0.0 (zipWith (*) weight (tail (training_set !! random_number))))
-    in (head (training_set !! random_number) - approximation) :
+    let training_instance = (training_set !! random_number) in 
+    let approximation = zip_fold (*) weight (tail training_instance)in 
+        head training_instance - approximation :
         evaluate_weight training_set weight (next_rng instances random_number) instances
 
 
 -- aux function
 check_weight :: [[Float]] -> Int -> Int -> Int -> [Float] -> Float
 check_weight  training_set random_number instances iterations weight =
-    let list = (evaluate_weight training_set weight random_number instances)
-    in abs(foldl (+) 0.0 (take iterations list))
+    let list = evaluate_weight training_set weight random_number instances
+    in abs(foldl (+) 0.0 (take iterations list)) / (fromInteger (toInteger iterations))
 
 
 -- check_weight (weight ...) !! max_value
 select_optimal:: [[Float]] -> [[Float]] -> Int  -> Int -> Int -> Int -> (Float, [Float])
 select_optimal training_set weights random_number instances iterations max_epoch =
-    let weight_error = take max_epoch (map (check_weight training_set random_number instances iterations) weights)
-        in minimum (zip weight_error weights)
+    let weight_error = (map (check_weight training_set random_number instances iterations) weights)
+        in minimum (zip (take max_epoch weight_error) weights)
 
 
 
@@ -108,9 +118,8 @@ main = do
     let trained_weights = scanl' (\x f -> f x) weights train_functions
 
     -- get optimal value
-    let checks_num = 14
+    let checks_num = 10
     let optimal_weight = select_optimal trained_weights trained_weights random_number instances checks_num max_epoch
-    --let optimal_weight = (0,(trained_weights !! max_epoch))
 
     -- print & return value
     print optimal_weight
