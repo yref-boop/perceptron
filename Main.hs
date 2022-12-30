@@ -49,9 +49,9 @@ train training_set expected_results act_function instances seed =
 
 
 
------ # SELECTION # -----
+----- # WEIGHT SELECTION # -----
 
--- zip+fold O(n)
+-- zip + fold
 zip_fold :: Num c => (a -> b -> c) -> [a] -> [b] -> c
 zip_fold f = aux 0
     where
@@ -64,7 +64,7 @@ zip_fold f = aux 0
 evaluate_weight :: [[Float]] -> [Float] -> Int -> Int -> [Float]
 evaluate_weight training_set weight random_number instances =
     let training_instance = (training_set !! random_number) in 
-    let approximation = zip_fold (*) weight (tail training_instance)in 
+    let approximation = zip_fold (*) weight (tail training_instance) in 
         head training_instance - approximation :
         evaluate_weight training_set weight (next_rng instances random_number) instances
 
@@ -80,12 +80,27 @@ check_weight  training_set random_number instances iterations weight =
 select_optimal:: [[Float]] -> [[Float]] -> Int  -> Int -> Int -> Int -> (Float, [Float])
 select_optimal training_set weights random_number instances iterations max_epoch =
     let weight_error = (map (check_weight training_set random_number instances iterations) weights)
-        in minimum (zip (take max_epoch weight_error) weights)
+    in minimum (zip (take max_epoch weight_error) weights)
 
 
 
 ----- # MAIN # -----
 
+-- get random_set
+random_subset :: [[Float]] -> Int -> Float -> [Int]
+random_subset general_set random_number percentage =
+    let instances = floor (fromIntegral(length general_set) * percentage) 
+    in take instances (drop 1 (iterate (next_rng (length general_set)) random_number))
+
+
+-- get subsets from data
+split_set :: [[Float]] -> Int -> Float -> ([[Float]], [[Float]])
+split_set general_set random_number percentage =
+    let random_set = map (general_set !!) (random_subset general_set random_number percentage)
+    in (general_set \\ random_set, random_set)
+
+
+-- main
 main :: IO (Float,[Float])
 main = do
     
@@ -93,17 +108,29 @@ main = do
     all_data <- Normalize.normalize_data
  
     -- auxiliar data gathered from input
-    let instances = length all_data
     let dimension = length (tail (head all_data))
 
     -- init random numbers
     rng_seed <- newStdGen
-    let (random_number, seed) = randomR (0,instances) (rng_seed)
+    let (random_seed, seed) = randomR (0,100000000) (rng_seed)
+
+    -- divide all_data
+    let (training_data, auxiliar_set) = split_set all_data random_seed 0.1
+    let (validation_set, test_set) = split_set auxiliar_set random_seed 0.5
+
+    print (length all_data)
+    print (length training_data)
+    print (length validation_set)
+    print (length test_set)
+
+    -- new random numbers
+    rng_seed <- newStdGen
+    let random_number = next_rng (length training_data) random_seed
 
     -- training inputs calculations
-    let training_set = fmap (1:) (fmap tail all_data)
-    let int_weights = take (dimension + 1) (iterate (next_rng instances) random_number)
-    let weights = map ((/1000).fromInteger.toInteger) int_weights
+    let training_set = fmap (1:) (fmap tail training_data)
+    let int_weights = take (dimension + 1) (iterate (next_rng (length training_set)) random_number)
+    let weights = map ((/1000).fromIntegral) int_weights
     let real_out = fmap (head) all_data
 
     -- hard-coded training values
@@ -112,14 +139,15 @@ main = do
     let act_function = sigmoid
 
     -- get all train functions
-    let train_functions = train training_set real_out act_function instances random_number
+    let train_functions = train training_set real_out act_function (length training_set) random_number
 
     -- apply train functions & print results
     let trained_weights = scanl' (\x f -> f x) weights train_functions
 
     -- get optimal value
-    let checks_num = 10
-    let optimal_weight = select_optimal trained_weights trained_weights random_number instances checks_num max_epoch
+    let checks_num = 5
+    let optimal_weight = select_optimal trained_weights trained_weights random_number (length training_set) checks_num max_epoch
+    --let optimal_weight = (1.0 ,trained_weights !! max_epoch)
 
     -- print & return value
     print optimal_weight
