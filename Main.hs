@@ -72,15 +72,16 @@ evaluate_weight training_set weight random_number instances =
 -- aux function
 check_weight :: [[Float]] -> Int -> Int -> Int -> [Float] -> Float
 check_weight  training_set random_number instances iterations weight =
-    let list = evaluate_weight training_set weight random_number instances
-    in abs(foldl (+) 0.0 (take iterations list)) / (fromInteger (toInteger iterations))
+    let list = evaluate_weight training_set weight random_number instances in
+        abs (foldl (+) 0.0 (take iterations list)) / (fromIntegral iterations)
 
 
 -- check_weight (weight ...) !! max_value
 select_optimal:: [[Float]] -> [[Float]] -> Int  -> Int -> Int -> Int -> (Float, [Float])
 select_optimal training_set weights random_number instances iterations max_epoch =
-    let weight_error = (map (check_weight training_set random_number instances iterations) weights)
-    in minimum (zip (take max_epoch weight_error) weights)
+    let get_error = check_weight training_set random_number instances iterations in
+    let weight_error = map get_error weights in
+        minimum (zip (take max_epoch weight_error) weights)
 
 
 
@@ -89,8 +90,9 @@ select_optimal training_set weights random_number instances iterations max_epoch
 -- get random_set
 random_subset :: [[Float]] -> Int -> Float -> [Int]
 random_subset general_set random_number percentage =
-    let instances = floor (fromIntegral(length general_set) * percentage) 
-    in take instances (drop 1 (iterate (next_rng (length general_set)) random_number))
+    let instances = floor (fromIntegral(length general_set) * percentage) in
+    let rng_list = iterate (next_rng (length general_set)) random_number in
+        take instances (drop 1 rng_list)
 
 
 -- get subsets from data
@@ -147,7 +149,6 @@ main = do
     -- get optimal value
     let checks_num = 5
     let optimal_weight = select_optimal trained_weights trained_weights random_number (length training_set) checks_num max_epoch
-    --let optimal_weight = (1.0 ,trained_weights !! max_epoch)
 
     -- print & return value
     print optimal_weight
