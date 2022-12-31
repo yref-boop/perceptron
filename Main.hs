@@ -2,7 +2,9 @@ module Main (main) where
 import Normalize (normalize_data)
 import System.Random
 import Data.List as List
-import Data.Vector.Unboxed
+import Data.Vector as V
+
+
 
 ----- # TRAINING # -----
 
@@ -91,15 +93,13 @@ select_optimal training_set weights random_number instances iterations max_epoch
 random_subset :: [[Float]] -> Int -> Float -> [Int]
 random_subset general_set random_number percentage =
     let instances = floor (fromIntegral(List.length general_set) * percentage) in
-    let rng_list = iterate (next_rng (List.length general_set)) random_number in
-        List.take instances (List.drop 1 rng_list)
+    List.take instances (iterate (next_rng (List.length general_set)) random_number)
 
 
 -- get subsets from data
-split_set :: [[Float]] -> Int -> Float -> ([[Float]], [[Float]])
+split_set :: [[Float]] -> Int -> Float -> [[Float]]
 split_set general_set random_number percentage =
-    let random_set = List.map (general_set !!) (random_subset general_set random_number percentage)
-    in (general_set \\ random_set, random_set)
+    List.map (general_set !!) (random_subset general_set random_number percentage)
 
 
 -- main
@@ -108,26 +108,29 @@ main = do
     
     -- store normalized data from data.txt
     all_data <- Normalize.normalize_data
+    let data_vector = fromList (fmap fromList all_data)
+    print data_vector
  
     -- auxiliar data gathered from input
     let dimension = List.length (List.tail (List.head all_data))
 
     -- init random numbers
     rng_seed <- newStdGen
-    let (random_seed, seed) = randomR (0,100000000) (rng_seed)
+    let (random_seed, seed) = randomR (0, List.length all_data) (rng_seed)
 
-    -- divide all_data
-    let (training_data, auxiliar_set) = split_set all_data random_seed 0.1
-    let (validation_set, test_set) = split_set auxiliar_set random_seed 0.5
+    let training_data = split_set all_data random_seed 0.9
+
+    -- new random numbers
+    rng_seed <- newStdGen
+    let random_number = next_rng (List.length training_data) random_seed
+
+    let validation_set = split_set (all_data \\ training_data) random_seed 0.5
+    let test_set = (training_data \\ validation_set)
 
     print (List.length all_data)
     print (List.length training_data)
     print (List.length validation_set)
     print (List.length test_set)
-
-    -- new random numbers
-    rng_seed <- newStdGen
-    let random_number = next_rng (List.length training_data) random_seed
 
     -- training inputs calculations
     let training_set = fmap (1:) (fmap List.tail training_data)
