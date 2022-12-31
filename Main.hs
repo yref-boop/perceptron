@@ -89,17 +89,28 @@ select_optimal training_set weights random_number instances iterations max_epoch
 
 ----- # MAIN # -----
 
--- get random_set
-random_subset :: [[Float]] -> Int -> Float -> [Int]
-random_subset general_set random_number percentage =
-    let instances = floor (fromIntegral(List.length general_set) * percentage) in
-    List.take instances (iterate (next_rng (List.length general_set)) random_number)
+-- get positions  
+select_split :: Vector (Vector Float) -> Int -> Float -> [Int]
+select_split general_vector random_number percentage = 
+    let instances = floor (fromIntegral (V.length general_vector) * percentage) in
+    List.take instances (iterate (next_rng (V.length general_vector)) random_number)
 
 
--- get subsets from data
-split_set :: [[Float]] -> Int -> Float -> [[Float]]
-split_set general_set random_number percentage =
-    List.map (general_set !!) (random_subset general_set random_number percentage)
+-- get remainder
+delete_split :: Vector (Vector Float) -> Vector (Vector Float) -> [Int] -> Vector (Vector Float)
+delete_split general_vector split_vector old_split =
+    let count_list = List.take (V.length general_vector) (List.iterate (+1) 0) in
+    let split_pos = fromList (count_list \\ old_split) in
+    V.map (general_vector !) split_pos 
+    
+
+-- split a vector into two
+split_data :: Vector (Vector Float) -> Int -> Float -> (Vector (Vector Float), Vector (Vector Float))
+split_data general_vector random_number percentage =
+    let split_pos = (select_split general_vector random_number percentage) in
+    let split_vector = V.map (general_vector !) (fromList split_pos) in
+    let remaining_vector = (delete_split general_vector split_vector split_pos) in 
+    (split_vector, remaining_vector)
 
 
 -- main
@@ -109,7 +120,6 @@ main = do
     -- store normalized data from data.txt
     all_data <- Normalize.normalize_data
     let data_vector = fromList (fmap fromList all_data)
-    print data_vector
  
     -- auxiliar data gathered from input
     let dimension = List.length (List.tail (List.head all_data))
@@ -118,20 +128,23 @@ main = do
     rng_seed <- newStdGen
     let (random_seed, seed) = randomR (0, List.length all_data) (rng_seed)
 
-    let training_data = split_set all_data random_seed 0.9
+    let (training_data, aux_vector) = split_data data_vector random_seed 0.9
 
     -- new random numbers
     rng_seed <- newStdGen
     let random_number = next_rng (List.length training_data) random_seed
 
-    let validation_set = split_set (all_data \\ training_data) random_seed 0.5
-    let test_set = (training_data \\ validation_set)
+    let (validation_set, test_set) = split_data aux_vector random_seed 0.5
 
-    print (List.length all_data)
-    print (List.length training_data)
-    print (List.length validation_set)
-    print (List.length test_set)
 
+    print (V.length data_vector)
+    print (V.length training_data)
+    print (V.length validation_set)
+    print (V.length test_set)
+
+    return (1,[1,2])
+
+    {- 
     -- training inputs calculations
     let training_set = fmap (1:) (fmap List.tail training_data)
     let int_weights = List.take (dimension + 1) (iterate (next_rng (List.length training_set)) random_number)
@@ -156,3 +169,4 @@ main = do
     -- print & return value
     print optimal_weight
     return optimal_weight
+    -}
