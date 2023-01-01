@@ -1,7 +1,7 @@
 module Main (main) where
 import Normalize (normalize_data)
 import System.Random
-import Data.List as List
+import Data.List as L
 import Data.Vector as V
 
 
@@ -10,7 +10,7 @@ import Data.Vector as V
 
 -- sigmoid function
 sigmoid :: Float -> Float
-sigmoid x = 1.0 / ( 1 + exp (-x) )
+sigmoid x = 1.0 / (1 + exp (-x))
 
 
 -- sigmoid derivative
@@ -21,7 +21,7 @@ sigmoid_derivative x =
 
 -- neuron function (weighted sum of inputs)
 neuron :: (Float -> Float) -> Vector Float -> Vector Float -> Float
-neuron activation_function inputs weight=
+neuron activation_function inputs weight =
     activation_function (V.foldl (+) 0.0 (V.zipWith (*) inputs weight))
 
 
@@ -39,7 +39,10 @@ next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 -- iterate learn function over weights using different examples each time
 update_weights :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> Vector Float -> Vector Float
 update_weights training_set expected_results act_function pos weights =
-    let error = (expected_results ! pos) - (neuron act_function (training_set ! pos) (weights)) in
+    let 
+        estimation = (neuron act_function (training_set ! pos) (weights))
+        error = (expected_results ! pos) - estimation
+    in
     V.zipWith (delta error) weights (training_set ! pos)
 
 
@@ -47,11 +50,12 @@ update_weights training_set expected_results act_function pos weights =
 train :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> [(Vector Float -> Vector Float)]
 train training_set expected_results act_function seed =
     let all_rng = iterate (next_rng (V.length training_set)) seed in
-    List.map (update_weights training_set expected_results act_function) all_rng
+    L.map (update_weights training_set expected_results act_function) all_rng
 
 
 
 ----- # VALIDATION # -----
+
 
 get_error :: Vector (Vector Float) -> Vector Float -> Int -> Float
 get_error training_set weight pos =
@@ -67,9 +71,9 @@ evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
 evaluate_weight training_set random_number iterations weight =
     let 
         random_numbers = randomRs (0,V.length training_set) (mkStdGen random_number)
-        pos_list = List.take iterations . nub $ (random_numbers)
+        pos_list = L.take iterations . nub $ random_numbers
     in
-        (V.foldl (+) 0.0 (V.map (get_error training_set weight) (fromList pos_list)))
+        V.foldl (+) 0.0 (V.map (get_error training_set weight) (fromList pos_list))
 
 
 -- get weight with better generalization on validation_set
@@ -77,9 +81,9 @@ select_optimal :: Vector (Vector Float) -> [Vector Float] -> Int -> Int -> Float
 select_optimal validation_set weights max_epoch iterations error_threshold random_number =
     let 
         get_error = evaluate_weight validation_set random_number iterations
-        weight_error = List.map get_error weights 
+        weight_error = L.map get_error weights 
     in
-    snd (List.minimum (List.take max_epoch (List.zip weight_error weights)))
+    snd (L.minimum (L.take max_epoch (L.zip weight_error weights)))
 
 
 ----- # MAIN # -----
@@ -87,16 +91,16 @@ select_optimal validation_set weights max_epoch iterations error_threshold rando
 
 -- get positions  
 select_split :: Vector (Vector Float) -> Int -> Float -> [Int]
-select_split general_vector random_number percentage = 
-    let instances = floor (fromIntegral (V.length general_vector) * percentage) in
-    List.take instances . nub $ (randomRs (0,V.length general_vector) (mkStdGen random_number))
+select_split vector random_number percentage = 
+    let instances = floor (fromIntegral (V.length vector) * percentage) in
+    L.take instances . nub $ (randomRs (0,V.length vector) (mkStdGen random_number))
 
 
 -- get remainder
 delete_split :: Vector (Vector Float) -> [Int] -> Vector (Vector Float)
 delete_split general_vector old_split =
     let 
-        count_list = List.take (V.length general_vector) (List.iterate (+1) 0) 
+        count_list = L.take (V.length general_vector) (L.iterate (+1) 0) 
         split_pos = fromList (count_list \\ old_split)
     in
     V.map (general_vector !) split_pos 
@@ -131,7 +135,7 @@ main = do
 
     -- get validation & test sets
     rng_seed <- newStdGen
-    let random_number = next_rng (List.length training_data) random_seed
+    let random_number = next_rng (L.length training_data) random_seed
     let (validation_set, test_set) = split_data aux_vector random_seed 0.5
 
     -- training inputs calculations
@@ -145,9 +149,9 @@ main = do
     let max_epoch = 1000000
     let act_function = sigmoid
 
-    -- get & apply all train functions
+    -- train phase
     let train_functions = train training_vector real_out act_function random_number
-    let trained_weights = List.scanl' (\x f -> f x) weights train_functions
+    let trained_weights = L.scanl' (\x f -> f x) weights train_functions
    
     -- validation & test phase
     rng_seed <- newStdGen
