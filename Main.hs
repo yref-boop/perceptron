@@ -44,51 +44,42 @@ update_weights training_set expected_results act_function pos weights =
 
 
 -- list of learning functions with each position 
-train :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> Int -> [Vector Float -> Vector Float]
-train training_set expected_results act_function instances seed =
-    let all_rng = iterate (next_rng instances) seed in
+train :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> [(Vector Float -> Vector Float)]
+train training_set expected_results act_function seed =
+    let all_rng = iterate (next_rng (V.length training_set)) seed in
     List.map (update_weights training_set expected_results act_function) all_rng
 
 
 
------ # WEIGHT SELECTION # -----
+----- # VALIDATION # -----
 
--- zip + fold
-zip_fold :: Num c => (a -> b -> c) -> [a] -> [b] -> c
-zip_fold f = aux 0
-    where
-        aux n [] _ = n
-        aux n _ [] = n
-        aux n (x:xs) (y:ys) = aux (f x y) xs ys
+get_error :: Vector (Vector Float) -> Vector Float -> Int -> Float
+get_error training_set weight pos =
+    let
+        results = (V.zipWith (*) weight (V.tail (training_set ! pos)))
+        approximation = (V.foldl (+) 0.0 results) / fromIntegral(V.length results)
+        real = V.head (training_set ! pos)
+    in 
+    abs (approximation - real)    
 
 
--- test given weight
-evaluate_weight :: [[Float]] -> [Float] -> Int -> Int -> [Float]
-evaluate_weight training_set weight random_number instances =
+evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
+evaluate_weight training_set random_number iterations weight =
     let 
-        training_instance = (training_set !! random_number)
-        approximation = zip_fold (*) weight (List.tail training_instance) 
+        random_numbers = randomRs (0,V.length training_set) (mkStdGen random_number)
+        pos_list = List.take iterations . nub $ (random_numbers)
     in
-        List.head training_instance - approximation :
-        evaluate_weight training_set weight (next_rng instances random_number) instances
+        (V.foldl (+) 0.0 (V.map (get_error training_set weight) (fromList pos_list)))
 
 
--- aux function
-check_weight :: [[Float]] -> Int -> Int -> Int -> [Float] -> Float
-check_weight  training_set random_number instances iterations weight =
-    let list = evaluate_weight training_set weight random_number instances in
-        abs (List.foldl (+) 0.0 (List.take iterations list)) / (fromIntegral iterations)
-
-
--- check_weight (weight ...) !! max_value
-select_optimal:: [[Float]] -> [[Float]] -> Int  -> Int -> Int -> Int -> (Float, [Float])
-select_optimal training_set weights random_number instances iterations max_epoch =
+-- get weight with better generalization on validation_set
+select_optimal :: Vector (Vector Float) -> [Vector Float] -> Int -> Int -> Float -> Int -> Vector Float
+select_optimal validation_set weights max_epoch iterations error_threshold random_number =
     let 
-        get_error = check_weight training_set random_number instances iterations
+        get_error = evaluate_weight validation_set random_number iterations
         weight_error = List.map get_error weights 
     in
-        List.minimum (List.zip (List.take max_epoch weight_error) weights)
-
+    snd (List.minimum (List.take max_epoch (List.zip weight_error weights)))
 
 
 ----- # MAIN # -----
@@ -151,23 +142,17 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.001
-    let max_epoch = 10000000
+    let max_epoch = 1000000
     let act_function = sigmoid
 
     -- get & apply all train functions
-    let train_functions = train training_vector real_out act_function (V.length training_vector) random_number
+    let train_functions = train training_vector real_out act_function random_number
     let trained_weights = List.scanl' (\x f -> f x) weights train_functions
-
-
-    print (trained_weights !! max_epoch)
-    return (trained_weights !! max_epoch)
-    
-    {- 
+   
     -- get optimal value
     let checks_num = 5
-    let optimal_weight = select_optimal trained_weights trained_weights random_number (List.length training_set) checks_num max_epoch
+    let optimal_weight = select_optimal validation_set trained_weights max_epoch checks_num error_threshold random_number
 
     -- print & return value
     print optimal_weight
     return optimal_weight
-    -}
