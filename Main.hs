@@ -37,14 +37,14 @@ next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 
 
 -- iterate learn function over weights using different examples each time
-update_weights :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> [Float] -> [Float]
+update_weights :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> [Float] -> [Float]
 update_weights training_set expected_results act_function pos weights =
-    let error = (expected_results !! pos) - (neuron act_function (training_set !! pos) (weights)) in
-    List.zipWith (delta error) weights (training_set !! pos)
+    let error = (expected_results ! pos) - (neuron act_function (training_set ! pos) (weights)) in
+    List.zipWith (delta error) weights (training_set ! pos)
 
 
 -- list of learning functions with each position 
-train :: [[Float]] -> [Float] -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
+train :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> Int -> [[Float] -> [Float]]
 train training_set expected_results act_function instances seed =
     let all_rng = iterate (next_rng instances) seed in
     List.map (update_weights training_set expected_results act_function) all_rng
@@ -65,8 +65,10 @@ zip_fold f = aux 0
 -- test given weight
 evaluate_weight :: [[Float]] -> [Float] -> Int -> Int -> [Float]
 evaluate_weight training_set weight random_number instances =
-    let training_instance = (training_set !! random_number) in 
-    let approximation = zip_fold (*) weight (List.tail training_instance) in 
+    let 
+        training_instance = (training_set !! random_number)
+        approximation = zip_fold (*) weight (List.tail training_instance) 
+    in
         List.head training_instance - approximation :
         evaluate_weight training_set weight (next_rng instances random_number) instances
 
@@ -81,15 +83,16 @@ check_weight  training_set random_number instances iterations weight =
 -- check_weight (weight ...) !! max_value
 select_optimal:: [[Float]] -> [[Float]] -> Int  -> Int -> Int -> Int -> (Float, [Float])
 select_optimal training_set weights random_number instances iterations max_epoch =
-    let get_error = check_weight training_set random_number instances iterations in
-    let weight_error = List.map get_error weights in
+    let 
+        get_error = check_weight training_set random_number instances iterations
+        weight_error = List.map get_error weights 
+    in
         List.minimum (List.zip (List.take max_epoch weight_error) weights)
 
 
 
 ----- # MAIN # -----
 
---take 6 . nub $ (randomRs (1,40) g :: [Int])
 
 -- get positions  
 select_split :: Vector (Vector Float) -> Int -> Float -> [Int]
@@ -111,9 +114,11 @@ delete_split general_vector old_split =
 -- split a vector into two
 split_data :: Vector (Vector Float) -> Int -> Float -> (Vector (Vector Float), Vector (Vector Float))
 split_data general_vector random_number percentage =
-    let split_pos = (select_split general_vector random_number percentage) in
-    let split_vector = (V.map (general_vector !) (fromList split_pos)) in
-    let remaining_vector = (delete_split general_vector split_pos) in 
+    let 
+        split_pos = (select_split general_vector random_number percentage)
+        split_vector = (V.map (general_vector !) (fromList split_pos))
+        remaining_vector = (delete_split general_vector split_pos)
+    in 
     (split_vector, remaining_vector)
 
 
@@ -126,11 +131,11 @@ main = do
     let data_vector = fromList (fmap fromList all_data)
  
     -- auxiliar data gathered from input
-    let dimension = List.length (List.tail (List.head all_data))
+    let dimension = V.length (V.tail (V.head data_vector))
 
     -- init random numbers
     rng_seed <- newStdGen
-    let (random_seed, seed) = randomR (0, List.length all_data) (rng_seed)
+    let (random_seed, seed) = randomR (0, V.length data_vector) (rng_seed)
 
     let (training_data, aux_vector) = split_data data_vector random_seed 0.9
 
@@ -141,20 +146,11 @@ main = do
     let (validation_set, test_set) = split_data aux_vector random_seed 0.5
 
 
-    print (V.length data_vector)
-    print (V.length training_data)
-    print (V.length aux_vector)
-    print (V.length validation_set)
-    print (V.length test_set)
-
-    return (1,[1,2])
-
-    {- 
     -- training inputs calculations
-    let training_set = fmap (1:) (fmap List.tail training_data)
-    let int_weights = List.take (dimension + 1) (iterate (next_rng (List.length training_set)) random_number)
-    let weights = List.map ((/1000).fromIntegral) int_weights
-    let real_out = fmap (List.head) all_data
+    let training_vector = fmap (flip update (V.singleton (0,1.0))) training_data
+    let int_weights = iterateN (dimension + 1) (next_rng (V.length training_vector)) random_number
+    let weights = fmap ((/1000).fromIntegral) int_weights
+    let real_out = fmap (V.head) data_vector
 
     -- hard-coded training values
     let error_threshold = 0.001
@@ -162,7 +158,11 @@ main = do
     let act_function = sigmoid
 
     -- get all train functions
-    let train_functions = train training_set real_out act_function (List.length training_set) random_number
+    let train_functions = train training_vector real_out act_function (V.length training_vector) random_number
+
+    return (1,[1,2])
+
+    {- 
 
     -- apply train functions & print results
     let trained_weights = List.scanl' (\x f -> f x) weights train_functions
