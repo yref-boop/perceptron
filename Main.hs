@@ -89,18 +89,22 @@ select_optimal training_set weights random_number instances iterations max_epoch
 
 ----- # MAIN # -----
 
+--take 6 . nub $ (randomRs (1,40) g :: [Int])
+
 -- get positions  
 select_split :: Vector (Vector Float) -> Int -> Float -> [Int]
 select_split general_vector random_number percentage = 
     let instances = floor (fromIntegral (V.length general_vector) * percentage) in
-    List.take instances (iterate (next_rng (V.length general_vector)) random_number)
+    List.take instances . nub $ (randomRs (0,V.length general_vector) (mkStdGen random_number))
 
 
 -- get remainder
-delete_split :: Vector (Vector Float) -> Vector (Vector Float) -> [Int] -> Vector (Vector Float)
-delete_split general_vector split_vector old_split =
-    let count_list = List.take (V.length general_vector) (List.iterate (+1) 0) in
-    let split_pos = fromList (count_list \\ old_split) in
+delete_split :: Vector (Vector Float) -> [Int] -> Vector (Vector Float)
+delete_split general_vector old_split =
+    let 
+        count_list = List.take (V.length general_vector) (List.iterate (+1) 0) 
+        split_pos = fromList (count_list \\ old_split)
+    in
     V.map (general_vector !) split_pos 
     
 
@@ -108,8 +112,8 @@ delete_split general_vector split_vector old_split =
 split_data :: Vector (Vector Float) -> Int -> Float -> (Vector (Vector Float), Vector (Vector Float))
 split_data general_vector random_number percentage =
     let split_pos = (select_split general_vector random_number percentage) in
-    let split_vector = V.map (general_vector !) (fromList split_pos) in
-    let remaining_vector = (delete_split general_vector split_vector split_pos) in 
+    let split_vector = (V.map (general_vector !) (fromList split_pos)) in
+    let remaining_vector = (delete_split general_vector split_pos) in 
     (split_vector, remaining_vector)
 
 
@@ -139,6 +143,7 @@ main = do
 
     print (V.length data_vector)
     print (V.length training_data)
+    print (V.length aux_vector)
     print (V.length validation_set)
     print (V.length test_set)
 
