@@ -114,7 +114,7 @@ split_data general_vector random_number percentage =
 
 
 -- main
-main :: IO (Vector Float)
+main :: IO (Vector Float, Float)
 main = do
     
     -- store normalized data from data.txt
@@ -149,12 +149,15 @@ main = do
     let train_functions = train training_vector real_out act_function random_number
     let trained_weights = List.scanl' (\x f -> f x) weights train_functions
    
-    -- validation phase
+    -- validation & test phase
     rng_seed <- newStdGen
-    let random_test = next_rng (V.length validation_set) random_seed
-    let checks_num = 10
-    let optimal_weight = select_optimal validation_set trained_weights max_epoch checks_num error_threshold random_test
+    let validation_random = next_rng (V.length validation_set - 1) random_seed
+    let checks_num = 100
+    let optimal_weight = select_optimal validation_set trained_weights max_epoch checks_num error_threshold validation_random
+    
+    let test_random = next_rng (V.length test_set - 1) random_seed
+    let final_error = evaluate_weight test_set test_random checks_num optimal_weight
 
     -- print & return value
-    print optimal_weight
-    return optimal_weight
+    print (optimal_weight, final_error)
+    return (optimal_weight, final_error)
