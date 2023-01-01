@@ -149,9 +149,11 @@ main = do
     let train_functions = train training_vector real_out act_function random_number
     let trained_weights = List.scanl' (\x f -> f x) weights train_functions
    
-    -- get optimal value
-    let checks_num = 5
-    let optimal_weight = select_optimal validation_set trained_weights max_epoch checks_num error_threshold random_number
+    -- validation phase
+    rng_seed <- newStdGen
+    let random_test = next_rng (V.length validation_set) random_seed
+    let checks_num = 10
+    let optimal_weight = select_optimal validation_set trained_weights max_epoch checks_num error_threshold random_test
 
     -- print & return value
     print optimal_weight
