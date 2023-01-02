@@ -70,7 +70,8 @@ get_error training_set weight pos =
 evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
 evaluate_weight training_set random_number iterations weight =
     let 
-        random_numbers = randomRs (0,V.length training_set) (mkStdGen random_number)
+        size = (V.length training_set - 1)
+        random_numbers = randomRs (0, size) (mkStdGen random_number)
         pos_list = L.take iterations . nub $ random_numbers
     in
         V.foldl (+) 0.0 (V.map (get_error training_set weight) (fromList pos_list))
@@ -93,7 +94,7 @@ select_optimal validation_set weights max_epoch iterations error_threshold rando
 select_split :: Vector (Vector Float) -> Int -> Float -> [Int]
 select_split vector random_number percentage = 
     let instances = floor (fromIntegral (V.length vector) * percentage) in
-    L.take instances . nub $ (randomRs (0,V.length vector) (mkStdGen random_number))
+    L.take instances . nub $ (randomRs (0,V.length vector - 1) (mkStdGen random_number))
 
 
 -- get remainder
@@ -120,7 +121,7 @@ split_data general_vector random_number percentage =
 -- main
 main :: IO (Vector Float, Float)
 main = do
-    
+
     -- store normalized data from data.txt
     all_data <- Normalize.normalize_data
     let data_vector = fromList (fmap fromList all_data)
@@ -152,13 +153,13 @@ main = do
     -- train phase
     let train_functions = train training_vector real_out act_function random_number
     let trained_weights = L.scanl' (\x f -> f x) weights train_functions
-   
+
     -- validation & test phase
     rng_seed <- newStdGen
     let validation_random = next_rng (V.length validation_set - 1) random_seed
     let checks_num = 100
     let optimal_weight = select_optimal validation_set trained_weights max_epoch checks_num error_threshold validation_random
-    
+ 
     let test_random = next_rng (V.length test_set - 1) random_seed
     let final_error = evaluate_weight test_set test_random checks_num optimal_weight
 
