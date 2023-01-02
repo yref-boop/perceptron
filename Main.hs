@@ -57,31 +57,35 @@ train training_set expected_results act_function seed =
 ----- # VALIDATION # -----
 
 
+-- validate one weight against one example
 get_error :: Vector (Vector Float) -> Vector Float -> Int -> Float
 get_error training_set weight pos =
     let
-        results = (V.zipWith (*) weight (V.tail (training_set ! pos)))
-        approximation = (V.foldl (+) 0.0 results) / fromIntegral(V.length results)
+        results = V.zipWith (*) weight (V.tail (training_set ! pos))
+        approximation = V.foldl (+) 0.0 results / fromIntegral (V.length results)
         real = V.head (training_set ! pos)
     in 
-    abs (approximation - real)    
+    abs (real - approximation)    
 
 
+-- for a weight, iterate validation over a random set of examples
 evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
 evaluate_weight training_set random_number iterations weight =
     let 
         size = (V.length training_set - 1)
         random_numbers = randomRs (0, size) (mkStdGen random_number)
         pos_list = L.take iterations . nub $ random_numbers
+        error_vector = V.map (get_error training_set weight) (fromList pos_list)
     in
-        V.foldl (+) 0.0 (V.map (get_error training_set weight) (fromList pos_list))
+        V.foldl (+) 0.0 (error_vector) / fromIntegral (V.length error_vector)
+
 
 -- get optimal (error, weight) from the whole list
 select_optimal :: [(Float, Vector Float)] -> (Float, Vector Float) -> Float -> (Float, Vector Float)
 select_optimal (x:xs) min error_threshold = 
     if (fst x < error_threshold) then x 
     else select_optimal xs (L.minimum (x:[min])) error_threshold
-select_optimal [] min error_threshold= min
+select_optimal [] min error_threshold = min
 
 
 -- get weight with better generalization on validation_set
