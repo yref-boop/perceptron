@@ -76,15 +76,23 @@ evaluate_weight training_set random_number iterations weight =
     in
         V.foldl (+) 0.0 (V.map (get_error training_set weight) (fromList pos_list))
 
+-- get optimal (error, weight) from the whole list
+select_optimal :: [(Float, Vector Float)] -> (Float, Vector Float) -> Float -> (Float, Vector Float)
+select_optimal (x:xs) min error_threshold = 
+    if (fst x < error_threshold) then x 
+    else select_optimal xs (L.minimum (x:[min])) error_threshold
+select_optimal [] min error_threshold= min
+
 
 -- get weight with better generalization on validation_set
-select_optimal :: Vector (Vector Float) -> [Vector Float] -> Int -> Int -> Float -> Int -> Vector Float
-select_optimal validation_set weights max_epoch iterations error_threshold random_number =
+validate_results :: Vector (Vector Float) -> [Vector Float] -> Int -> Int -> Float -> Int -> Vector Float
+validate_results validation_set weights max_epoch iterations error_threshold random_number =
     let 
         get_error = evaluate_weight validation_set random_number iterations
-        weight_error = L.map get_error weights 
+        weight_error = L.map get_error weights
+        error_weights = L.take max_epoch (L.zip weight_error weights)
     in
-    snd (L.minimum (L.take max_epoch (L.zip weight_error weights)))
+    snd (select_optimal error_weights (1/0, V.singleton 0) error_threshold)
 
 
 ----- # MAIN # -----
@@ -135,7 +143,6 @@ main = do
     let (training_data, aux_vector) = split_data data_vector random_seed 0.9
 
     -- get validation & test sets
-    rng_seed <- newStdGen
     let random_number = next_rng (L.length training_data) random_seed
     let (validation_set, test_set) = split_data aux_vector random_seed 0.5
 
@@ -155,10 +162,9 @@ main = do
     let trained_weights = L.scanl' (\x f -> f x) weights train_functions
 
     -- validation & test phase
-    rng_seed <- newStdGen
     let validation_random = next_rng (V.length validation_set - 1) random_seed
     let checks_num = 100
-    let optimal_weight = select_optimal validation_set trained_weights max_epoch checks_num error_threshold validation_random
+    let optimal_weight = validate_results validation_set trained_weights max_epoch checks_num error_threshold validation_random
  
     let test_random = next_rng (V.length test_set - 1) random_seed
     let final_error = evaluate_weight test_set test_random checks_num optimal_weight
