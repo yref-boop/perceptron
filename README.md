@@ -1,6 +1,22 @@
 # perceptron 
+perceptron implementation using haskell that aims to be a generalized perceptron for any given dataset
+the idea is not for it to be competitive at all, but rather for me to test some functional programming concepts & learn more about haskell & ai
 
-## input
+## technologies
+the compiler used was:
+- ghc version 9.4.4 
+the idea was to rely on external modules as little as possible:
+- Data.Vector
+- Data.List
+- System.Random
+
+## execution
+compiling the Main.hs file (`ghc Main.hs`) & running it (`./Main`) should suffice
+at the moment all performance options (epochs, error, validation...) are hard-coded on this file for my confort
+(i may add them as inputs later)
+
+## specifications
+### input
 data is written on the data.txt file such that:
 
 ```math
