@@ -6,6 +6,19 @@ import Data.Vector as V
 
 
 
+----- # RANDOM VALUES # -----
+
+-- get next random integer
+next_rng :: Int -> Int -> Int
+next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
+
+
+-- get list of non-repeated random integers
+unique_rng :: Int -> Int -> Int -> [Int]
+unique_rng iterations size random_number =
+    L.take iterations . nub $ randomRs (0, size) (mkStdGen random_number)
+
+
 ----- # TRAINING # -----
 
 -- sigmoid function
@@ -29,11 +42,6 @@ neuron activation_function inputs weight =
 delta :: Float -> Float -> Float -> Float 
 delta error old_weight input_value = 
     old_weight + (sigmoid_derivative error) * (error) * input_value
-
-
--- get next random integer
-next_rng :: Int -> Int -> Int
-next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
 
 
 -- iterate learn function over weights using different examples each time
@@ -73,9 +81,8 @@ evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
 evaluate_weight training_set random_number iterations weight =
     let 
         size = (V.length training_set - 1)
-        random_numbers = randomRs (0, size) (mkStdGen random_number)
-        pos_list = L.take iterations . nub $ random_numbers
-        error_vector = V.map (get_error training_set weight) (fromList pos_list)
+        pos_vect = fromList (unique_rng iterations size random_number)
+        error_vector = V.map (get_error training_set weight) pos_vect
     in
         V.foldl (+) 0.0 (error_vector) / fromIntegral (V.length error_vector)
 
@@ -111,12 +118,8 @@ validate_results validation_set weights max_epoch iterations error_threshold ran
 -- get positions  
 select_split :: Vector (Vector Float) -> Int -> Float -> [Int]
 select_split vector random_number percent = 
-    let 
-        instances = floor (fromIntegral (V.length vector) * percent)
-        limit = V.length vector - 1
-        random_list = randomRs (0, limit) (mkStdGen random_number)
-    in
-        L.take instances . nub $ random_list
+    let instances = floor (fromIntegral (V.length vector) * percent) in
+        unique_rng instances ((V.length vector) - 1) random_number
 
 
 -- get remainder
@@ -168,7 +171,7 @@ main = do
 
     -- hard-coded training values
     let error_threshold = 0.05
-    let max_epoch = 10000000
+    let max_epoch = 100000
     let act_function = sigmoid
 
     -- train phase
@@ -178,7 +181,7 @@ main = do
     -- validation & test phase
     let validation_random = next_rng (V.length validation_set - 1) random_seed
     let checks_num = 100
-    let optimal_weight = validate_results validation_set trained_weights max_epoch checks_num error_threshold validation_random
+    let optimal_weight = (validate_results validation_set trained_weights max_epoch checks_num error_threshold validation_random)
  
     let test_random = next_rng (V.length test_set - 1) random_seed
     let final_error = evaluate_weight test_set test_random checks_num (snd optimal_weight)
