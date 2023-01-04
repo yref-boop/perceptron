@@ -47,6 +47,18 @@ the actual data read will be a `[[a']]`, such that, for the previous example:
 this data is normalized automatically by trasposing the [[Float]] and dividing each value of each list by the maximum value on that list
 this normalization is not perfect, it does not take into account boolean/categorizing values (which should be made into different properties) but for this project, it'll do
 
+### complexity 
+
+| valid.\train  | 1     | 10    | 100   | 1000  | 10000 | 100000 | 1000000 | 10000000 | 100000000 |
+|---------------|-------|-------|-------|-------|-------|--------|---------|----------|-----------|
+| 1             | 0.5   | 0.5   | 0.5   | 0.5   | 0.6   | 1.1    | 6.6     | 64.0     | inf       |
+| 10            | 0.5   | 0.5   | 0.5   | 0.5   | 0.7   | 1.7    | 14.0    | 157.0    | inf       |
+| 50            | 0.5   | 0.5   | 0.5   | 0.6   | 1.0   | 5.3    | 53.0    | 493.9    | inf       |
+| 100           | 0.5   | 0.5   | 0.5   | 0.7   | 1.7   | 11.0   | 116.0   | 1098.3   | inf       |
+| 150           | 0.5   | 0.5   | 0.5   | 0.8   | 2.7   | 22.0   | 201.0   | inf      | inf       |
+| 200           | 0.5   | 0.5   | 0.6   | 0.9   | 4.5   | 40.0   | 371.0   | inf      | inf       |
+| 250           | inf   | inf   | inf   | inf   | inf   | inf    | inf     | inf      | inf       |
+
 
 ### current dataset example
 
@@ -57,7 +69,7 @@ the current [data](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) has the
 - residual sugar
 - chlorides
 - free sulfur dioxide
-- total sulfur dioxide
+- total sulfur dioxide
 - density
 - pH
 - suphates
