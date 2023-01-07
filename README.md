@@ -20,7 +20,7 @@ the code can be divided into two different parts:
 - `Main.hs`: main functionality (training, validation & testing) that calculates an optimal weight approximation for the given data
 
 ## specifications
-### input
+### data
 data is written on the data.txt file such that:
 
 ```math
@@ -29,38 +29,62 @@ data is written on the data.txt file such that:
 a_0&a_1&a_2&\ldots&a_n \\b_0&b_1&b_2&\ldots&b_n\\c_0&c_1&c_2&\ldots&c_n\\\vdots&\vdots&\vdots&\ddots&\vdots\\m_0&m_1&m_2&\ldots&m_n
 \end{array}
 \end{matrix}
-$$
 ```
+
 - the number of rows $m$ is the number of instances available for the problem
 - the number of columns $n$ signifies the dimensionality of the problem
     - the first column $n=0$ represents the expected result for the corresponding data
 
-on the file *per se*, each number must be separated with a tab '\t' & newlines for each row
+on the file *per se*, each number must be separated with a tab `\t` & newlines `\n` for each row
 
-the actual data read will be a `[[a']]`, such that, for the previous example:
-```data =[[a0,a1,a2,...an],[b0,b1,b2,...bn],[c0,c1,c2,...cn],...[m0,m1,m2,...mn]]```
+### normalize
+
+the actual data read will be a `[[Float]]`, such that, for the previous example:
+```data = [[a0,a1,a2,...an],[b0,b1,b2,...bn],[c0,c1,c2,...cn],...[m0,m1,m2,...mn]]```
 
 - the size of the primary list is the number of instances
 - the size of any of the sub-lists (-1) is the dimensionality of the problem
     - there is easy access to the expected result as `head` of each sub-list
 
-this data is normalized automatically by trasposing the [[Float]] and dividing each value of each list by the maximum value on that list
-this normalization is not perfect, it does not take into account boolean/categorizing values (which should be made into different properties) but for this project, it'll do
+this data is normalized automatically by trasposing the `[[Float]]` and dividing each value of each list by the maximum value on that list `map (/ (foldl max))`
+this normalization is not perfect: it does not take into account boolean/categorizing values (which should be made into different properties) but for this project, it'll do
 
-### complexity 
+### main
+data structures (vector vs list)...
+#### training
+#### validation
 
-| valid.\train  | 1     | 10    | 100   | 1000  | 10000 | 100000 | 1000000 | 10000000 | 100000000 |
-|---------------|-------|-------|-------|-------|-------|--------|---------|----------|-----------|
-| 1             | 0.5   | 0.5   | 0.5   | 0.5   | 0.6   | 1.1    | 6.6     | 64.0     | inf       |
-| 10            | 0.5   | 0.5   | 0.5   | 0.5   | 0.7   | 1.7    | 14.0    | 157.0    | inf       |
-| 50            | 0.5   | 0.5   | 0.5   | 0.6   | 1.0   | 5.3    | 53.0    | 493.9    | inf       |
-| 100           | 0.5   | 0.5   | 0.5   | 0.7   | 1.7   | 11.0   | 116.0   | 1098.3   | inf       |
-| 150           | 0.5   | 0.5   | 0.5   | 0.8   | 2.7   | 22.0   | 201.0   | inf      | inf       |
-| 200           | 0.5   | 0.5   | 0.6   | 0.9   | 4.5   | 40.0   | 371.0   | inf      | inf       |
-| 250           | inf   | inf   | inf   | inf   | inf   | inf    | inf     | inf      | inf       |
+#### empyrical complexity
 
+|     | 1     | 10    | 1e2   | 1e3   | 1e4   | 1e5   | 1e6   | 1e7  | 1e8 |
+|-----|-------|-------|-------|-------|-------|-------|-------|------|-----|
+| 1   | 0.5   | 0.5   | 0.5   | 0.5   | 0.6   | 1.1   | 6.6   | 64   | inf |
+| 10  | 0.5   | 0.5   | 0.5   | 0.5   | 0.7   | 1.7   | 14.0  | 157  | inf |
+| 50  | 0.5   | 0.5   | 0.5   | 0.6   | 1.0   | 5.3   | 53.0  | 493  | inf |
+| 100 | 0.5   | 0.5   | 0.5   | 0.7   | 1.7   | 11.0  | 116.0 | 1098 | inf |
+| 150 | 0.5   | 0.5   | 0.5   | 0.8   | 2.7   | 22.0  | 201.0 | inf  | inf |
+| 200 | 0.5   | 0.5   | 0.6   | 0.9   | 4.5   | 40.0  | 371.0 | inf  | inf |
+| 250 | inf   | inf   | inf   | inf   | inf   | inf   | inf   | inf  | inf |
+
+O(n) [200] = `0.5−5.00000050000*10^(−8)x`
+O(n) [150] = `0.5−5.00000050000...*10^(−8)x`
+O(n) [100] = `0.00010975x+0.49989`
+O(n) [50] = `0.00004975x+0.49995`
+O(n) [10] = `0.00001565x+0.499984`
+O(n) [1] = 
+
+max_epoch complexity = `O(n)`
+
+O(m) [1e6] = `f(x)=7.0392020335679*10^(-9) x^(5)-3.1879880245883*10^(-6) x^(4)+0.000534124 x^(3)-0.0357789 x^(2)+1.8933 x-1.25805`
+O(m) [1e5] = `g(x)=3.524125517703*10^(-10) x^(5)+1.618356645607*10^(-7) x^(4)-0.0000213841 x^(3)+0.00132515 x^(2)+0.0542878 x+1.04441`
+O(m) [1e4] = `h(x)=8.68417798999*10^(-9) x^(3)-0.0000974269 x^(2)+0.109752 x+0.990345`
+O(m) [1,1e3] = constant
+
+validation_iterations complexity: polynomial
 
 ### current dataset example
+
+functional programming hnley milll typessystem
 
 the current [data](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) has the following input variables:
 - fixed acidity
@@ -69,7 +93,7 @@ the current [data](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) has the
 - residual sugar
 - chlorides
 - free sulfur dioxide
-- total sulfur dioxide
+- total sulfur dioxide
 - density
 - pH
 - suphates
