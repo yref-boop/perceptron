@@ -8,6 +8,7 @@ import Data.Vector as V
 
 ----- # RANDOM VALUE GENERATING # -----
 
+
 -- get next random integer
 next_rng :: Int -> Int -> Int
 next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
@@ -136,29 +137,29 @@ validate_results validation_set weights max_epoch iterations error_threshold ran
 
 
 -- get positions  
-select_split :: Vector (Vector Float) -> Int -> Float -> [Int]
-select_split vector random_number percent = 
+select_indexes :: Vector (Vector Float) -> Int -> Float -> [Int]
+select_indexes vector random_number percent = 
     let instances = floor (fromIntegral (V.length vector) * percent) in
         unique_rng instances ((V.length vector) - 1) random_number
 
 
 -- get remainder
 delete_split :: Vector (Vector Float) -> [Int] -> Vector (Vector Float)
-delete_split general_vector old_split =
+delete_split vector old_indexes =
     let 
-        count_list = L.take (V.length general_vector) (L.iterate (+1) 0) 
-        split_pos = fromList (count_list \\ old_split)
+        count = L.take (V.length vector) (L.iterate (+1) 0) 
+        indexes = fromList (count \\ old_indexes)
     in
-        V.map (general_vector !) split_pos 
+        V.map (vector !) indexes
     
 
 -- split a vector into two
 split_data :: Vector (Vector Float) -> Int -> Float -> (Vector (Vector Float), Vector (Vector Float))
-split_data general_vector random_number percent =
+split_data original_vector random_number percent =
     let 
-        split_pos = (select_split general_vector random_number percent)
-        split_vector = (V.map (general_vector !) (fromList split_pos))
-        remaining_vector = (delete_split general_vector split_pos)
+        indexes = select_indexes original_vector random_number percent
+        split_vector = V.map (original_vector !) (fromList indexes)
+        remaining_vector = delete_split original_vector indexes
     in 
         (split_vector, remaining_vector)
 
@@ -168,7 +169,6 @@ split ::  Vector (Vector Float) -> Int -> (Float, Float) -> (Vector (Vector Floa
 split vector random percents =
     let
         (training, aux_vector) = split_data vector random (fst percents)
-        random_number = next_rng (L.length training) random
         (validation, test) = split_data aux_vector random (snd percents)
     in
         (training, validation, test)
@@ -197,18 +197,21 @@ main = do
 
     -- training phase
     let act_function = sigmoid
-    let trained_weights = train data_set training_set act_function random_seed
+    let trained_weights = train 
+            data_set training_set act_function random_seed
 
     -- validation phase
-    let random = next_rng (V.length validation_set - 1) random_seed
-    let error_threshold = 0.00005
+    let val_random = next_rng (V.length validation_set - 1) random_seed
+    let error_threshold = 0.001
     let epochs = 100000
     let checks_num = 1
-    let optimal_weight = (validate_results validation_set trained_weights epochs checks_num error_threshold random)
+    let optimal_weight = validate_results 
+            validation_set trained_weights epochs checks_num error_threshold val_random
  
     -- test function
-    let random = next_rng (V.length test_set - 1) random_seed
-    let final_error = evaluate_weight test_set random checks_num (snd optimal_weight)
+    let test_random = next_rng (V.length test_set - 1) random_seed
+    let final_error = evaluate_weight 
+            test_set test_random checks_num (snd optimal_weight)
 
     -- print & return value
     print (fst optimal_weight, snd optimal_weight, final_error)
