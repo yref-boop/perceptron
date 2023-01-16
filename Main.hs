@@ -55,10 +55,25 @@ update_weights training_set expected_results act_function pos weights =
 
 
 -- list of learning functions with each position 
-train :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> [(Vector Float -> Vector Float)]
-train training_set expected_results act_function seed =
+train_function :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> [(Vector Float -> Vector Float)]
+train_function training_set expected_results act_function seed =
     let all_rng = iterate (next_rng (V.length training_set)) seed in
     L.map (update_weights training_set expected_results act_function) all_rng
+
+
+train :: Vector (Vector Float) -> Vector (Vector Float) -> (Float -> Float) -> Int -> [Vector Float]
+train data_vector training_data act_function random =
+    let 
+        dimension = V.length (V.tail (V.head data_vector))
+        random_number = next_rng (L.length training_data) random
+        training_vector = fmap (flip update (V.singleton (0,1.0))) training_data
+        int_weights = iterateN (dimension + 1) (next_rng (V.length training_vector)) random_number
+        weights = fmap ((/1000).fromIntegral) int_weights
+        real_out = fmap (V.head) data_vector
+        
+        train_functions = train_function training_vector real_out act_function random_number
+    in
+        L.scanl' (\x f -> f x) weights train_functions
 
 
 
@@ -174,23 +189,15 @@ main = do
     let (random_seed, seed) = randomR (0, V.length data_vector) (rng_seed) 
     
     -- divide data into the three necessary sets
-    let (training_data, validation_set, test_set) = split data_vector random_seed (0.9, 0.5)
+    let (training_set, validation_set, test_set) = split data_vector random_seed (0.9, 0.5)
 
-    -- training inputs calculations
-    let random_number = next_rng (L.length training_data) random_seed
-    let training_vector = fmap (flip update (V.singleton (0,1.0))) training_data
-    let int_weights = iterateN (dimension + 1) (next_rng (V.length training_vector)) random_number
-    let weights = fmap ((/1000).fromIntegral) int_weights
-    let real_out = fmap (V.head) data_vector
+    let act_function = sigmoid
+    let trained_weights = train data_vector training_set act_function random_seed
 
-    -- hard-coded training values
+
+    -- hard-coded validation values
     let error_threshold = 0.00005
     let max_epoch = 100000
-    let act_function = sigmoid
-
-    -- train phase
-    let train_functions = train training_vector real_out act_function random_number
-    let trained_weights = L.scanl' (\x f -> f x) weights train_functions
 
     -- validation & test phase
     let validation_random = next_rng (V.length validation_set - 1) random_seed
