@@ -1,12 +1,12 @@
 module Main (main) where
 import Normalize (normalize_data)
-import System.Random
+import System.Random hiding (split)
 import Data.List as L
 import Data.Vector as V
 
 
 
------ # RANDOM VALUES # -----
+----- # RANDOM VALUE GENERATING # -----
 
 -- get next random integer
 next_rng :: Int -> Int -> Int
@@ -112,7 +112,8 @@ validate_results validation_set weights max_epoch iterations error_threshold ran
         select_optimal error_weights error_threshold
 
 
------ # MAIN # -----
+
+----- # SPLITTING DATASET # -----
 
 
 -- get positions  
@@ -143,7 +144,21 @@ split_data general_vector random_number percent =
         (split_vector, remaining_vector)
 
 
--- main
+-- split into the three sets
+split ::  Vector (Vector Float) -> Int -> (Float, Float) -> (Vector (Vector Float), Vector (Vector Float), (Vector (Vector Float)))
+split vector random percents =
+    let
+        (training, aux_vector) = split_data vector random (fst percents)
+        random_number = next_rng (L.length training) random
+        (validation, test) = split_data aux_vector random (snd percents)
+    in
+        (training, validation, test)
+
+
+
+----- # MAIN # -----
+
+
 main :: IO [Float]
 main = do
 
@@ -154,23 +169,22 @@ main = do
     -- auxiliar data gathered from input
     let dimension = V.length (V.tail (V.head data_vector))
 
-    -- get training data
+    -- generate random number
     rng_seed <- newStdGen
-    let (random_seed, seed) = randomR (0, V.length data_vector) (rng_seed)
-    let (training_data, aux_vector) = split_data data_vector random_seed 0.9
-
-    -- get validation & test sets
-    let random_number = next_rng (L.length training_data) random_seed
-    let (validation_set, test_set) = split_data aux_vector random_seed 0.5
+    let (random_seed, seed) = randomR (0, V.length data_vector) (rng_seed) 
+    
+    -- divide data into the three necessary sets
+    let (training_data, validation_set, test_set) = split data_vector random_seed (0.9, 0.5)
 
     -- training inputs calculations
+    let random_number = next_rng (L.length training_data) random_seed
     let training_vector = fmap (flip update (V.singleton (0,1.0))) training_data
     let int_weights = iterateN (dimension + 1) (next_rng (V.length training_vector)) random_number
     let weights = fmap ((/1000).fromIntegral) int_weights
     let real_out = fmap (V.head) data_vector
 
     -- hard-coded training values
-    let error_threshold = 0.05
+    let error_threshold = 0.00005
     let max_epoch = 100000
     let act_function = sigmoid
 
@@ -180,7 +194,7 @@ main = do
 
     -- validation & test phase
     let validation_random = next_rng (V.length validation_set - 1) random_seed
-    let checks_num = 100
+    let checks_num = 1
     let optimal_weight = (validate_results validation_set trained_weights max_epoch checks_num error_threshold validation_random)
  
     let test_random = next_rng (V.length test_set - 1) random_seed
