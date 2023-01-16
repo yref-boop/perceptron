@@ -19,7 +19,9 @@ unique_rng iterations size random_number =
     L.take iterations . nub $ randomRs (0, size) (mkStdGen random_number)
 
 
+
 ----- # TRAINING # -----
+
 
 -- sigmoid function
 sigmoid :: Float -> Float
@@ -61,13 +63,15 @@ train_function training_set expected_results act_function seed =
     L.map (update_weights training_set expected_results act_function) all_rng
 
 
+-- calculate necesary values for train_function
 train :: Vector (Vector Float) -> Vector (Vector Float) -> (Float -> Float) -> Int -> [Vector Float]
 train data_vector training_data act_function random =
     let 
         dimension = V.length (V.tail (V.head data_vector))
         random_number = next_rng (L.length training_data) random
         training_vector = fmap (flip update (V.singleton (0,1.0))) training_data
-        int_weights = iterateN (dimension + 1) (next_rng (V.length training_vector)) random_number
+        next_vector = next_rng (V.length training_vector)
+        int_weights = iterateN (dimension + 1) next_vector random_number
         weights = fmap ((/1000).fromIntegral) int_weights
         real_out = fmap (V.head) data_vector
         
@@ -179,33 +183,32 @@ main = do
 
     -- store normalized data from data.txt
     all_data <- Normalize.normalize_data
-    let data_vector = fromList (fmap fromList all_data)
+    let data_set = fromList (fmap fromList all_data)
  
     -- auxiliar data gathered from input
-    let dimension = V.length (V.tail (V.head data_vector))
+    let dimension = V.length (V.tail (V.head data_set))
 
     -- generate random number
     rng_seed <- newStdGen
-    let (random_seed, seed) = randomR (0, V.length data_vector) (rng_seed) 
+    let (random_seed, seed) = randomR (0, V.length data_set) (rng_seed) 
     
     -- divide data into the three necessary sets
-    let (training_set, validation_set, test_set) = split data_vector random_seed (0.9, 0.5)
+    let (training_set, validation_set, test_set) = split data_set random_seed (0.9, 0.5)
 
+    -- training phase
     let act_function = sigmoid
-    let trained_weights = train data_vector training_set act_function random_seed
+    let trained_weights = train data_set training_set act_function random_seed
 
-
-    -- hard-coded validation values
+    -- validation phase
+    let random = next_rng (V.length validation_set - 1) random_seed
     let error_threshold = 0.00005
-    let max_epoch = 100000
-
-    -- validation & test phase
-    let validation_random = next_rng (V.length validation_set - 1) random_seed
+    let epochs = 100000
     let checks_num = 1
-    let optimal_weight = (validate_results validation_set trained_weights max_epoch checks_num error_threshold validation_random)
+    let optimal_weight = (validate_results validation_set trained_weights epochs checks_num error_threshold random)
  
-    let test_random = next_rng (V.length test_set - 1) random_seed
-    let final_error = evaluate_weight test_set test_random checks_num (snd optimal_weight)
+    -- test function
+    let random = next_rng (V.length test_set - 1) random_seed
+    let final_error = evaluate_weight test_set random checks_num (snd optimal_weight)
 
     -- print & return value
     print (fst optimal_weight, snd optimal_weight, final_error)
