@@ -10,14 +10,15 @@ import Data.Vector as V
 
 
 -- get next random integer
-next_rng :: Int -> Int -> Int
-next_rng limit seed = fst(randomR (0, limit) (mkStdGen seed))
+next_random :: Int -> Int -> Int
+next_random limit random_seed = 
+    fst (randomR (0, limit) (mkStdGen random_seed))
 
 
 -- get list of non-repeated random integers
-unique_rng :: Int -> Int -> Int -> [Int]
-unique_rng iterations size random_number =
-    L.take iterations . nub $ randomRs (0, size) (mkStdGen random_number)
+unique_randoms :: Int -> Int -> Int -> [Int]
+unique_randoms iterations limit random_seed =
+    L.take iterations . nub $ randomRs (0, limit) (mkStdGen random_seed)
 
 
 
@@ -51,7 +52,7 @@ delta error old_weight input_value =
 update_weights :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> Vector Float -> Vector Float
 update_weights training_set expected_results act_function pos weights =
     let 
-        estimation = (neuron act_function (training_set ! pos) (weights))
+        estimation = neuron act_function (training_set ! pos) (weights)
         error = (expected_results ! pos) - estimation
     in
         V.zipWith (delta error) weights (training_set ! pos)
@@ -60,7 +61,7 @@ update_weights training_set expected_results act_function pos weights =
 -- list of learning functions with each position 
 train_function :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> [(Vector Float -> Vector Float)]
 train_function training_set expected_results act_function seed =
-    let all_rng = iterate (next_rng (V.length training_set)) seed in
+    let all_rng = iterate (next_random (V.length training_set)) seed in
     L.map (update_weights training_set expected_results act_function) all_rng
 
 
@@ -69,9 +70,9 @@ train :: Vector (Vector Float) -> Vector (Vector Float) -> (Float -> Float) -> I
 train data_vector training_data act_function random =
     let 
         dimension = V.length (V.tail (V.head data_vector))
-        random_number = next_rng (L.length training_data) random
+        random_number = next_random (L.length training_data) random
         training_vector = fmap (flip update (V.singleton (0,1.0))) training_data
-        next_vector = next_rng (V.length training_vector)
+        next_vector = next_random (V.length training_vector)
         int_weights = iterateN (dimension + 1) next_vector random_number
         weights = fmap ((/1000).fromIntegral) int_weights
         real_out = fmap (V.head) data_vector
@@ -101,7 +102,7 @@ evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
 evaluate_weight training_set random_number iterations weight =
     let 
         size = (V.length training_set - 1)
-        indexes = fromList (unique_rng iterations size random_number)
+        indexes = fromList (unique_randoms iterations size random_number)
         error_vector = V.map (get_error training_set weight) indexes
     in
         V.foldl (+) 0.0 (error_vector) / fromIntegral (V.length error_vector)
@@ -126,7 +127,7 @@ select_optimal error_weights error_threshold =
 validate :: Vector (Vector Float) -> [Vector Float] -> Int -> Int -> Float -> Int -> (Int, Vector Float)
 validate validation_set weights max_epoch iterations error_threshold random_seed =
     let
-        random_number = next_rng (V.length validation_set - 1) random_seed
+        random_number = next_random (V.length validation_set - 1) random_seed
         get_error = evaluate_weight validation_set random_number iterations
         weight_error = L.map get_error weights
         error_weights = L.take max_epoch (L.zip weight_error weights)
@@ -142,7 +143,7 @@ validate validation_set weights max_epoch iterations error_threshold random_seed
 select_indexes :: Vector (Vector Float) -> Int -> Float -> [Int]
 select_indexes vector random_number percent = 
     let instances = floor (fromIntegral (V.length vector) * percent) in
-        unique_rng instances ((V.length vector) - 1) random_number
+        unique_randoms instances ((V.length vector) - 1) random_number
 
 
 -- get remainder
@@ -208,7 +209,7 @@ main = do
             validation_set trained_weights epochs checks accuracy random_seed
  
     -- test function
-    let test_rng = next_rng (V.length test_set - 1) random_seed
+    let test_rng = next_random (V.length test_set - 1) random_seed
     let final_error = evaluate_weight 
             test_set test_rng checks (snd optimal_weight)
 
