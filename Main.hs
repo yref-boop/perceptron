@@ -87,11 +87,11 @@ train data_vector training_data act_function random =
 
 -- validate one weight against one example
 get_error :: Vector (Vector Float) -> Vector Float -> Int -> Float
-get_error training_set weight pos =
+get_error training_set weight position =
     let
-        results = V.zipWith (*) weight (V.tail (training_set ! pos))
-        approximation = V.foldl (+) 0.0 results / fromIntegral (V.length results)
-        real = V.head (training_set ! pos)
+        values = V.zipWith (*) weight (V.tail (training_set ! position))
+        approximation = V.foldl (+) 0.0 values / fromIntegral (V.length values)
+        real = V.head (training_set ! position)
     in 
         abs (real - approximation)    
 
@@ -101,30 +101,32 @@ evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
 evaluate_weight training_set random_number iterations weight =
     let 
         size = (V.length training_set - 1)
-        pos_vect = fromList (unique_rng iterations size random_number)
-        error_vector = V.map (get_error training_set weight) pos_vect
+        indexes = fromList (unique_rng iterations size random_number)
+        error_vector = V.map (get_error training_set weight) indexes
     in
         V.foldl (+) 0.0 (error_vector) / fromIntegral (V.length error_vector)
 
 
-optimize :: [(Float, Vector Float)] -> (Float, Vector Float) -> Float -> Int -> (Int, Vector Float)
-optimize weights minimum threshold count =
-    case weights of
-    []    -> (count, snd minimum)
-    (head : tail) -> 
-        if (fst head < threshold) then (count, snd minimum)
-        else optimize tail (min head minimum) threshold (count + 1)
-
-
+-- gets the weights with the best estimation value
 select_optimal :: [(Float, Vector Float)] -> Float -> (Int, Vector Float)
 select_optimal error_weights error_threshold =
-    optimize error_weights (1/0, V.singleton 0) error_threshold 0
+    let 
+        optimize :: [(Float, Vector Float)] -> (Float, Vector Float) -> Float -> Int -> (Int, Vector Float)
+        optimize weights minimum threshold count =
+            case weights of
+            [] -> (count, snd minimum)
+            (head : tail) -> 
+                if (fst head < threshold) then (count, snd minimum)
+                else optimize tail (min head minimum) threshold (count + 1)
+    in 
+        optimize error_weights (1/0, V.singleton 0) error_threshold 0
 
 
 -- get weight with better generalization on validation_set
-validate_results :: Vector (Vector Float) -> [Vector Float] -> Int -> Int -> Float -> Int -> (Int, Vector Float)
-validate_results validation_set weights max_epoch iterations error_threshold random_number =
-    let 
+validate :: Vector (Vector Float) -> [Vector Float] -> Int -> Int -> Float -> Int -> (Int, Vector Float)
+validate validation_set weights max_epoch iterations error_threshold random_seed =
+    let
+        random_number = next_rng (V.length validation_set - 1) random_seed
         get_error = evaluate_weight validation_set random_number iterations
         weight_error = L.map get_error weights
         error_weights = L.take max_epoch (L.zip weight_error weights)
@@ -184,16 +186,14 @@ main = do
     -- store normalized data from data.txt
     all_data <- Normalize.normalize_data
     let data_set = fromList (fmap fromList all_data)
- 
-    -- auxiliar data gathered from input
-    let dimension = V.length (V.tail (V.head data_set))
 
     -- generate random number
     rng_seed <- newStdGen
     let (random_seed, seed) = randomR (0, V.length data_set) (rng_seed) 
     
     -- divide data into the three necessary sets
-    let (training_set, validation_set, test_set) = split data_set random_seed (0.9, 0.5)
+    let (training_set, validation_set, test_set) = split 
+            data_set random_seed (0.9, 0.5)
 
     -- training phase
     let act_function = sigmoid
@@ -201,17 +201,16 @@ main = do
             data_set training_set act_function random_seed
 
     -- validation phase
-    let val_random = next_rng (V.length validation_set - 1) random_seed
-    let error_threshold = 0.001
-    let epochs = 100000
-    let checks_num = 1
-    let optimal_weight = validate_results 
-            validation_set trained_weights epochs checks_num error_threshold val_random
+    let accuracy = 0.01
+    let epochs = 1000000
+    let checks = 1
+    let optimal_weight = validate
+            validation_set trained_weights epochs checks accuracy random_seed
  
     -- test function
-    let test_random = next_rng (V.length test_set - 1) random_seed
+    let test_rng = next_rng (V.length test_set - 1) random_seed
     let final_error = evaluate_weight 
-            test_set test_random checks_num (snd optimal_weight)
+            test_set test_rng checks (snd optimal_weight)
 
     -- print & return value
     print (fst optimal_weight, snd optimal_weight, final_error)
