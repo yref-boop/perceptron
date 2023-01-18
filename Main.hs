@@ -61,23 +61,25 @@ update_weights training_set expected_results act_function pos weights =
 -- list of learning functions with each position 
 train_function :: Vector (Vector Float) -> Vector Float -> (Float -> Float) -> Int -> [(Vector Float -> Vector Float)]
 train_function training_set expected_results act_function seed =
-    let all_rng = iterate (next_random (V.length training_set)) seed in
-    L.map (update_weights training_set expected_results act_function) all_rng
+    let rng_list = iterate (next_random (V.length training_set)) seed in
+    L.map (update_weights training_set expected_results act_function) rng_list
 
 
 -- calculate necesary values for train_function
 train :: Vector (Vector Float) -> Vector (Vector Float) -> (Float -> Float) -> Int -> [Vector Float]
-train data_vector training_data act_function random =
+train data_set training_set act_function seed =
     let 
-        dimension = V.length (V.tail (V.head data_vector))
-        random_number = next_random (L.length training_data) random
-        training_vector = fmap (flip update (V.singleton (0,1.0))) training_data
+        training_vector = fmap (flip update (V.singleton (0,1.0))) training_set
+        results = fmap (V.head) data_set
+        train_functions = 
+                train_function training_vector results act_function random
+
+        dimension = V.length (V.tail (V.head data_set))
+        random = next_random (L.length training_set) seed
         next_vector = next_random (V.length training_vector)
-        int_weights = iterateN (dimension + 1) next_vector random_number
+        int_weights = iterateN (dimension + 1) next_vector random
         weights = fmap ((/1000).fromIntegral) int_weights
-        real_out = fmap (V.head) data_vector
-        
-        train_functions = train_function training_vector real_out act_function random_number
+
     in
         L.scanl' (\x f -> f x) weights train_functions
 
