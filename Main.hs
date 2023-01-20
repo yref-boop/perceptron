@@ -10,13 +10,13 @@ import Data.Vector as V
 
 
 next_random :: Int -> Int -> Int
-next_random limit random_seed =
-    fst (randomR (0, limit) (mkStdGen random_seed))
+next_random limit seed =
+    fst (randomR (0, limit) (mkStdGen seed))
 
 
 unique_randoms :: Int -> Int -> Int -> [Int]
-unique_randoms iterations limit random_seed =
-    L.take iterations . nub $ randomRs (0, limit) (mkStdGen random_seed)
+unique_randoms iterations limit seed =
+    L.take iterations . nub $ randomRs (0, limit) (mkStdGen seed)
 
 
 
@@ -42,18 +42,18 @@ delta error old_weight input_value =
     old_weight + (sigmoid_derivative error) * (error) * input_value
 
 
-update_weights :: Vector (Vector Float)
+update_weight :: Vector (Vector Float)
     -> Vector Float
     -> (Float -> Float)
     -> Int
     -> Vector Float
     -> Vector Float
-update_weights training_set expected_results act_function pos weights =
+update_weight training_set expected_results act_function pos weight =
     let
-        estimation = neuron act_function (training_set ! pos) (weights)
+        estimation = neuron act_function (training_set ! pos) weight
         error = (expected_results ! pos) - estimation
     in
-        V.zipWith (delta error) weights (training_set ! pos)
+        V.zipWith (delta error) weight (training_set ! pos)
 
 
 train_function :: Vector (Vector Float)
@@ -63,7 +63,7 @@ train_function :: Vector (Vector Float)
     -> [(Vector Float -> Vector Float)]
 train_function training_set expected_results act_function seed =
     let rng_list = iterate (next_random (V.length training_set)) seed in
-    L.map (update_weights training_set expected_results act_function) rng_list
+    L.map (update_weight training_set expected_results act_function) rng_list
 
 
 train :: Vector (Vector Float)
@@ -103,32 +103,32 @@ get_error training_set weight position =
 
 
 evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
-evaluate_weight training_set random_number iterations weight =
+evaluate_weight training_set seed iterations weight =
     let
         size = (V.length training_set - 1)
-        indexes = fromList (unique_randoms iterations size random_number)
+        indexes = fromList (unique_randoms iterations size seed)
         error_vector = V.map (get_error training_set weight) indexes
     in
         V.foldl (+) 0.0 (error_vector) / fromIntegral (V.length error_vector)
 
 
 select_optimal :: [(Float, Vector Float)] -> Float -> (Int, Vector Float)
-select_optimal error_weights error_threshold =
+select_optimal error_weights accuracy =
     let
         optimize :: [(Float, Vector Float)]
             -> (Float, Vector Float)
             -> Float
             -> Int
             -> (Int, Vector Float)
-        optimize weights minimum threshold count =
-            case weights of
+        optimize error_weights minimum accuracy count =
+            case error_weights of
             [] -> (count, snd minimum)
             (head : tail) ->
-                if (fst head < threshold)
+                if (fst head < accuracy)
                 then (count, snd minimum)
-                else optimize tail (min head minimum) threshold (count + 1)
+                else optimize tail (min head minimum) accuracy (count + 1)
     in
-        optimize error_weights (1/0, V.singleton 0) error_threshold 0
+        optimize error_weights (1/0, V.singleton 0) accuracy 0
 
 
 validate :: Vector (Vector Float)
@@ -138,14 +138,14 @@ validate :: Vector (Vector Float)
     -> Float
     -> Int
     -> (Int, Vector Float)
-validate validation_set weights max_epoch iterations error_threshold random_seed =
+validate validation_set weights epochs iterations accuracy seed=
     let
-        random_number = next_random (V.length validation_set - 1) random_seed
+        random_number = next_random (V.length validation_set - 1) seed
         evaluate = evaluate_weight validation_set random_number iterations
         weight_error = L.map evaluate weights
-        error_weights = L.take max_epoch (L.zip weight_error weights)
+        error_weights = L.take epochs (L.zip weight_error weights)
     in
-        select_optimal error_weights error_threshold
+        select_optimal error_weights accuracy
 
 
 
@@ -153,9 +153,9 @@ validate validation_set weights max_epoch iterations error_threshold random_seed
 
 
 select_indexes :: Vector (Vector Float) -> Int -> Float -> [Int]
-select_indexes vector random_number percent =
+select_indexes vector random percent =
     let instances = floor (fromIntegral (V.length vector) * percent) in
-        unique_randoms instances ((V.length vector) - 1) random_number
+        unique_randoms instances ((V.length vector) - 1) random
 
 
 delete_split :: Vector (Vector Float) -> [Int] -> Vector (Vector Float)
@@ -171,11 +171,11 @@ split_data :: Vector (Vector Float)
     -> Int
     -> Float
     -> (Vector (Vector Float), Vector (Vector Float))
-split_data original_vector random_number percent =
+split_data vector seed percent =
     let
-        indexes = select_indexes original_vector random_number percent
-        split_vector = V.map (original_vector !) (fromList indexes)
-        remaining_vector = delete_split original_vector indexes
+        indexes = select_indexes vector seed percent
+        split_vector = V.map (vector !) (fromList indexes)
+        remaining_vector = delete_split vector indexes
     in
         (split_vector, remaining_vector)
 
@@ -184,10 +184,10 @@ split :: Vector (Vector Float)
     -> Int
     -> (Float, Float)
     -> (Vector (Vector Float), Vector (Vector Float), (Vector (Vector Float)))
-split vector random percents =
+split vector seed percents =
     let
-        (training, aux_vector) = split_data vector random (fst percents)
-        (validation, test) = split_data aux_vector random (snd percents)
+        (training, aux_vector) = split_data vector seed (fst percents)
+        (validation, test) = split_data aux_vector seed (snd percents)
     in
         (training, validation, test)
 
