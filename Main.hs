@@ -102,7 +102,11 @@ get_error training_set weight position =
         abs (real - approximation)
 
 
-evaluate_weight :: Vector (Vector Float) -> Int -> Int -> Vector Float -> Float
+evaluate_weight :: Vector (Vector Float)
+    -> Int
+    -> Int
+    -> Vector Float
+    -> Float
 evaluate_weight training_set seed iterations weight =
     let
         size = (V.length training_set - 1)
@@ -145,7 +149,9 @@ validate validation_set weights epochs iterations accuracy seed=
         weight_error = L.map evaluate weights
         error_weights = L.take epochs (L.zip weight_error weights)
     in
-        select_optimal error_weights accuracy
+        if (iterations < 1)
+        then (epochs, (weights !! (epochs - 1)))
+        else select_optimal error_weights accuracy
 
 
 
@@ -219,14 +225,15 @@ main = do
     -- validation phase
     let accuracy = 0.01
     let epochs = 10000000
-    let checks = 10
+    let checks = 0
     let optimal_weight = validate
             validation_set trained_weights epochs checks accuracy random_seed
  
     -- test function
+    let tests = 10
     let test_rng = next_random (V.length test_set - 1) random_seed
     let final_error = evaluate_weight
-            test_set test_rng checks (snd optimal_weight)
+            test_set test_rng tests (snd optimal_weight)
 
     -- print & return value
     print (fst optimal_weight, snd optimal_weight, final_error)
