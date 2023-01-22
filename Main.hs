@@ -29,7 +29,7 @@ sigmoid x = 1.0 / (1 + exp (-x))
 
 sigmoid_derivative :: Float -> Float
 sigmoid_derivative x =
-    sigmoid x * (1.0 - sigmoid x )
+    sigmoid x * (1.0 - sigmoid x)
 
 
 neuron :: (Float -> Float) -> Vector Float -> Vector Float -> Float
@@ -62,8 +62,11 @@ train_function :: Vector (Vector Float)
     -> Int
     -> [(Vector Float -> Vector Float)]
 train_function training_set expected_results act_function seed =
-    let rng_list = iterate (next_random (V.length training_set)) seed in
-    L.map (update_weight training_set expected_results act_function) rng_list
+    let
+        rng_list = iterate (next_random (V.length training_set)) seed
+        update_list = update_weight training_set expected_results act_function
+    in
+        L.map update_list rng_list
 
 
 train :: Vector (Vector Float)
@@ -128,18 +131,19 @@ optimize error_weights optimal accuracy count last_error fails max_fails =
     case error_weights of
     [] -> (count, snd optimal)
     (head : tail) ->
-        if (fst head < accuracy || fails >= max_fails)
+        if fst head < accuracy || fails >= max_fails
         then (count, snd optimal)
         else
             let
                 minimum = min head optimal
+                next = count + 1
                 error = fst head
-                new_fails = 
-                    if ((fst head) > last_error)
-                    then (fails + 1)
+                new_fails =
+                    if (fst head) > last_error
+                    then fails + 1
                     else 0
             in
-                optimize tail minimum accuracy (count+1) error new_fails max_fails
+                optimize tail minimum accuracy next error new_fails max_fails
 
 
 select_optimal :: [(Float, Vector Float)] -> Float -> Int -> (Int, Vector Float)
@@ -168,7 +172,7 @@ validate validation_set weights epochs iterations accuracy seed fails =
         weight_error = L.map evaluate weights
         error_weights = L.take epochs (L.zip weight_error weights)
     in
-        if (iterations < 1)
+        if iterations < 1
         then (epochs, (weights !! (epochs - 1)))
         else select_optimal error_weights accuracy fails
 
@@ -231,10 +235,11 @@ main = do
     -- generate random number
     rng_seed <- newStdGen
     let (random_seed, seed) = randomR (0, V.length data_set) (rng_seed)
-    
+
     -- divide data into the three necessary sets
+    let percentages = (0.9, 0.5)
     let (training_set, validation_set, test_set) = split
-            data_set random_seed (0.9, 0.5)
+            data_set random_seed percentages
 
     -- training phase
     let act_function = sigmoid
@@ -243,9 +248,9 @@ main = do
 
     -- validation phase
     let accuracy = 0.001
-    let epochs = 100000
+    let epochs = 1000000
     let checks = 10
-    let fails = 25
+    let consecutive_fails = 25
     let optimal_weight =
             validate
                 validation_set
@@ -254,7 +259,7 @@ main = do
                 checks
                 accuracy
                 random_seed
-                fails
+                consecutive_fails
  
     -- test function
     let tests = 10
