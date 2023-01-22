@@ -116,23 +116,33 @@ evaluate_weight training_set seed iterations weight =
         V.foldl (+) 0.0 (error_vector) / fromIntegral (V.length error_vector)
 
 
-select_optimal :: [(Float, Vector Float)] -> Float -> (Int, Vector Float)
-select_optimal error_weights accuracy =
+optimize :: [(Float, Vector Float)]
+    -> (Float, Vector Float)
+    -> Float
+    -> Int
+    -> Float
+    -> Int
+    -> Int
+    -> (Int, Vector Float)
+optimize error_weights minimum accuracy count last_error best max_count =
+    case error_weights of
+    [] -> (count, snd minimum)
+    (head : tail) ->
+        if ((fst head < accuracy) || (best >= max_count))
+        then (count, snd minimum)
+        else
+            if ((fst head) > last_error)
+            then optimize tail (min head minimum) accuracy (count + 1) (fst head) (best + 1) max_count
+            else optimize tail (min head minimum) accuracy (count + 1) (fst head) 0 max_count
+
+
+select_optimal :: [(Float, Vector Float)] -> Float -> Int -> (Int, Vector Float)
+select_optimal error_weights accuracy count =
     let
-        optimize :: [(Float, Vector Float)]
-            -> (Float, Vector Float)
-            -> Float
-            -> Int
-            -> (Int, Vector Float)
-        optimize error_weights minimum accuracy count =
-            case error_weights of
-            [] -> (count, snd minimum)
-            (head : tail) ->
-                if (fst head < accuracy)
-                then (count, snd minimum)
-                else optimize tail (min head minimum) accuracy (count + 1)
+        high_fractional =  1/0
+        initial_pair = (high_fractional, V.singleton 0)
     in
-        optimize error_weights (1/0, V.singleton 0) accuracy 0
+        optimize error_weights initial_pair accuracy 0 high_fractional 0 count
 
 
 validate :: Vector (Vector Float)
@@ -141,8 +151,9 @@ validate :: Vector (Vector Float)
     -> Int
     -> Float
     -> Int
+    -> Int
     -> (Int, Vector Float)
-validate validation_set weights epochs iterations accuracy seed=
+validate validation_set weights epochs iterations accuracy seed count =
     let
         random_number = next_random (V.length validation_set - 1) seed
         evaluate = evaluate_weight validation_set random_number iterations
@@ -151,7 +162,7 @@ validate validation_set weights epochs iterations accuracy seed=
     in
         if (iterations < 1)
         then (epochs, (weights !! (epochs - 1)))
-        else select_optimal error_weights accuracy
+        else select_optimal error_weights accuracy count
 
 
 
@@ -223,11 +234,12 @@ main = do
             data_set training_set act_function random_seed
 
     -- validation phase
-    let accuracy = 0.01
-    let epochs = 10000000
-    let checks = 0
+    let accuracy = 0.000001
+    let epochs = 100000
+    let checks = 10
+    let count = 10
     let optimal_weight = validate
-            validation_set trained_weights epochs checks accuracy random_seed
+            validation_set trained_weights epochs checks accuracy random_seed count
  
     -- test function
     let tests = 10
