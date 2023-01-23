@@ -123,11 +123,10 @@ optimize :: [(Float, Vector Float)]
     -> (Float, Vector Float)
     -> Float
     -> Int
-    -> Float
     -> Int
     -> Int
     -> (Int, Vector Float)
-optimize error_weights optimal accuracy count last_error fails max_fails =
+optimize error_weights optimal accuracy count fails max_fails =
     case error_weights of
     [] -> (count, snd optimal)
     (head : tail) ->
@@ -137,13 +136,12 @@ optimize error_weights optimal accuracy count last_error fails max_fails =
             let
                 minimum = min head optimal
                 next = count + 1
-                error = fst head
                 new_fails =
-                    if (fst head) > last_error
+                    if (fst head) > (fst optimal)
                     then fails + 1
                     else 0
             in
-                optimize tail minimum accuracy next error new_fails max_fails
+                optimize tail minimum accuracy next new_fails max_fails
 
 
 select_optimal :: [(Float, Vector Float)] -> Float -> Int -> (Int, Vector Float)
@@ -151,10 +149,10 @@ select_optimal error_weights accuracy fails =
     let
         count = 0
         best = 0
-        error = 1/0
-        initial_pair = (error, V.singleton 0)
+        (mock_error, mock_weights) = (1/0, V.singleton 0)
+        worst_optimal = (mock_error, mock_weights)
     in
-        optimize error_weights initial_pair accuracy count error best fails
+        optimize error_weights worst_optimal accuracy count best fails
 
 
 validate :: Vector (Vector Float)
@@ -248,7 +246,7 @@ main = do
 
     -- validation phase
     let accuracy = 0.001
-    let epochs = 1000000
+    let epochs = 100000
     let checks = 10
     let consecutive_fails = 25
     let optimal_weight =
