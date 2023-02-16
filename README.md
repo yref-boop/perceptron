@@ -1,4 +1,4 @@
-# perceptron 
+# perceptron
 perceptron implementation using haskell that aims to be a generalized perceptron for any given dataset
 the idea is not for it to be competitive at all, but rather for me to test some functional programming concepts & learn more about haskell & ai
 
@@ -19,7 +19,6 @@ the code can be divided into two different parts:
 - `Normalize.hs`: auxiliar functionality that parses & normalizes the dataset written into `data.tx`
 - `Main.hs`: main functionality (training, validation & testing) that calculates an optimal weight approximation for the given data
 
-## specifications
 ### data
 data is written on the data.txt file such that:
 
@@ -37,7 +36,7 @@ a_0&a_1&a_2&\ldots&a_n \\b_0&b_1&b_2&\ldots&b_n\\c_0&c_1&c_2&\ldots&c_n\\\vdots&
 
 on the file *per se*, each number must be separated with a tab `\t` & newlines `\n` for each row
 
-### normalize
+### normalization
 
 the actual data read will be a `[[Float]]`, such that, for the previous example:
 ```data = [[a0,a1,a2,...an],[b0,b1,b2,...bn],[c0,c1,c2,...cn],...[m0,m1,m2,...mn]]```
@@ -54,8 +53,13 @@ data structures (vector vs list)...
 #### training
 #### validation
 
-#### empyrical complexity
+## complexity
+this code is expected to be iterated quite a lot, thus it is important to manage its complexity correctly
 
+without much analysis, execution seems pretty expensive, especially the validation phase
+
+### empyrical complexity
+for a more in-depth analysis, execution time is measured & complexity extracted from it:
 |     | 1     | 10    | 1e2   | 1e3   | 1e4   | 1e5   | 1e6   | 1e7  | 1e8 |
 |-----|-------|-------|-------|-------|-------|-------|-------|------|-----|
 | 1   | 0.5   | 0.5   | 0.5   | 0.5   | 0.6   | 1.1   | 6.6   | 64   | inf |
@@ -66,21 +70,24 @@ data structures (vector vs list)...
 | 200 | 0.5   | 0.5   | 0.6   | 0.9   | 4.5   | 40.0  | 371.0 | inf  | inf |
 | 250 | inf   | inf   | inf   | inf   | inf   | inf   | inf   | inf  | inf |
 
-O(n) [200] = `0.5−5.00000050000*10^(−8)x`
-O(n) [150] = `0.5−5.00000050000...*10^(−8)x`
-O(n) [100] = `0.00010975x+0.49989`
-O(n) [50] = `0.00004975x+0.49995`
-O(n) [10] = `0.00001565x+0.499984`
-O(n) [1] = 
+- O(n) [200] = `0.5−5.00000050000*10^(−8)x`
+- O(n) [150] = `0.5−5.00000050000...*10^(−8)x`
+- O(n) [100] = `0.00010975x+0.49989`
+- O(n) [50] = `0.00004975x+0.49995`
+- O(n) [10] = `0.00001565x+0.499984`
 
 max_epoch complexity = `O(n)`
 
-O(m) [1e6] = `f(x)=7.0392020335679*10^(-9) x^(5)-3.1879880245883*10^(-6) x^(4)+0.000534124 x^(3)-0.0357789 x^(2)+1.8933 x-1.25805`
-O(m) [1e5] = `g(x)=3.524125517703*10^(-10) x^(5)+1.618356645607*10^(-7) x^(4)-0.0000213841 x^(3)+0.00132515 x^(2)+0.0542878 x+1.04441`
-O(m) [1e4] = `h(x)=8.68417798999*10^(-9) x^(3)-0.0000974269 x^(2)+0.109752 x+0.990345`
-O(m) [1,1e3] = constant
+- O(m) [1e6] = `f(x)=7.0392020335679*10^(-9) x^(5)-3.1879880245883*10^(-6) x^(4)+0.000534124 x^(3)-0.0357789 x^(2)+1.8933 x-1.25805`
+- O(m) [1e5] = `g(x)=3.524125517703*10^(-10) x^(5)+1.618356645607*10^(-7) x^(4)-0.0000213841 x^(3)+0.00132515 x^(2)+0.0542878 x+1.04441`
+- O(m) [1e4] = `h(x)=8.68417798999*10^(-9) x^(3)-0.0000974269 x^(2)+0.109752 x+0.990345`
+- O(m) [1,1e3] = constant
 
-validation_iterations complexity: polynomial
+with this data, it is clear that the current complexity of the code is polynomial, being `m` (validation_iterations) the value that increases the complexity the most (as expected)
+
+### complexity management
+to mitigate the high complexity, the code checks several data to stop execution if no more training is necesary, being the most relevant, the number of contiguous training iterations without improvement
+
 
 ### current dataset example
 
