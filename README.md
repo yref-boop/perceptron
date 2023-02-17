@@ -4,7 +4,7 @@ the idea is not for it to be competitive at all, but rather for me to test some 
 
 ## technologies
 this repo only uses haskell, trying to rely on external modules as little as possible
-- ghc version 9.4.4 
+- ghc version 9.4.4
 - Data.Vector
 - Data.List
 - System.Random
@@ -49,9 +49,18 @@ this data is normalized automatically by trasposing the `[[Float]]` and dividing
 this normalization is not perfect: it does not take into account boolean/categorizing values (which should be made into different properties) but for this project, it'll do
 
 ### main
-data structures (vector vs list)...
+#### vectors vs lists
+since the data read will not be modified, but accessed really frequently, instead of using a list of lists, a vector of vector is used, since access is done in `O(1)`
+since i did not want to modify read/normalization code, the data is converted as soon as read on `Main.hs` itself
 #### training
+training has been implemented as a `scanl` that takes the initial weight and other parameters and keeps training each weight
+because of haskell's lazy evaluation, code will compute only as many training iterations as needed
 #### validation
+in order to know when to stop training, the validation phase comes into being
+training checks any given weight against the validation set, checking the average error, how many iterations since last impovement, current epoch...
+once any of this conditions is met, it returns the current weights as the optimal
+#### test
+test is the simplest phase, it just checks the optimal weight against the test set, to check weight abstraction properties
 
 ## complexity
 this code is expected to be iterated quite a lot, thus it is important to manage its complexity correctly
@@ -91,8 +100,6 @@ to mitigate the high complexity, the code checks several data to stop execution 
 
 ### current dataset example
 
-functional programming hnley milll typessystem
-
 the current [data](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) has the following input variables:
 - fixed acidity
 - volatile acidity
@@ -104,6 +111,7 @@ the current [data](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) has the
 - density
 - pH
 - suphates
+
 the objective is for the ann to be able to predict the quality (represented as an integer [1,10])
 
-this problem, at first glance incites solving with a more complex ann, but given the results of external tests, a perceptron should suffice
+this problem incites solving with a more complex ann, but empyrical test show a test error of [1e-2,1], being the lower bound quite acceptable
