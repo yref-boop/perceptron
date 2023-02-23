@@ -15,7 +15,7 @@ at the moment all performance options (epochs, error, validation...) are hard-co
 (i may add them as inputs later)
 
 ## code structure
-the code can be divided into two different parts:
+the code is divided in two different files:
 - `Normalize.hs`: auxiliar functionality that parses & normalizes the dataset written into `data.tx`
 - `Main.hs`: main functionality (training, validation & testing) that calculates an optimal weight approximation for the given data
 
@@ -36,7 +36,7 @@ a_0&a_1&a_2&\ldots&a_n \\b_0&b_1&b_2&\ldots&b_n\\c_0&c_1&c_2&\ldots&c_n\\\vdots&
 
 on the file *per se*, each number must be separated with a tab `\t` & newlines `\n` for each row
 
-### normalization
+#### formating
 
 the actual data read will be a `[[Float]]`, such that, for the previous example:
 ```data = [[a0,a1,a2,...an],[b0,b1,b2,...bn],[c0,c1,c2,...cn],...[m0,m1,m2,...mn]]```
@@ -45,11 +45,12 @@ the actual data read will be a `[[Float]]`, such that, for the previous example:
 - the size of any of the sub-lists (-1) is the dimensionality of the problem
     - there is easy access to the expected result as `head` of each sub-list
 
+#### normalization
 this data is normalized automatically by trasposing the `[[Float]]` and dividing each value of each list by the maximum value on that list `map (/ (foldl max))`
 this normalization is not perfect: it does not take into account boolean/categorizing values (which should be made into different properties) but for this project, it'll do
 
 ### main
-#### vectors vs lists
+#### datatypes
 since the data read will not be modified, but accessed really frequently, instead of using a list of lists, a vector of vector is used, since access is done in `O(1)`
 since i did not want to modify read/normalization code, the data is converted as soon as read on `Main.hs` itself
 #### training
@@ -115,3 +116,4 @@ the current [data](https://archive.ics.uci.edu/ml/datasets/Wine+Quality) has the
 the objective is for the ann to be able to predict the quality (represented as an integer [1,10])
 
 this problem incites solving with a more complex ann, but empyrical test show a test error of [1e-2,1], being the lower bound quite acceptable
+for a more complex problem: [artificial neural network](https://github.com/yref-boop/ann)
